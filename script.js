@@ -160,7 +160,14 @@ async function init() {
 
 
   form.appendChild(select("schedulingPanel","Include additional TC10 to use as scheduling panel outside room?",["None","Yes"]));
-  form.appendChild(select("supportTerm","Select Support term",["None","1yr","3yr"]));
+  form.appendChild(select("supportTerm","Select Support term",[
+  {value:"poly1",label:"1yr - Poly+"},
+  {value:"poly3",label:"3yr - Poly+"},
+  {value:"poly5",label:"5yr - Poly+"},
+  {value:"analyze1",label:"1yr - Poly+ Analyze"},
+  {value:"analyze3",label:"3yr - Poly+ Analyze"},
+  {value:"analyze5",label:"5yr - Poly+ Analyze"}
+]));
   form.appendChild(select("implementationHelp","Implementation Help",["None","Remote Implementation help","Onsite Implementation help"]));
   form.appendChild(input("accessories","Optional: any additional accessories (comma-separated SKUs)","e.g. 3rd party powered speakers, existing audio, 3rd party DSP, extra cameras, cables"));
 
