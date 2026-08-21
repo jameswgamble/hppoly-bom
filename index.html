@@ -6,82 +6,10 @@
   <title>Poly Video Conferencing "Bill" of Materials Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Universal system font stack — original clean format */
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: #f4f4f5;
-      color: #18181b;
-      line-height: 1.55;
     }
-    :root {
-      --mono-ink: #18181b;
-      --mono-panel: #fafafa;
-      --mono-border: #3f3f46;
-      --mono-muted: #52525b;
-      --mono-light: #e4e4e7;
-      --mono-white: #ffffff;
-    }
-    .max-w-5xl {
-      background: var(--mono-panel);
-      border: 2px solid var(--mono-border);
-      box-shadow: 0 0 0 4px var(--mono-light), 0 0 0 6px var(--mono-border), 0 12px 28px rgba(24, 24, 27, 0.08);
-      border-radius: 2px;
-      padding: 1.75rem 1.5rem !important;
-    }
-    h1 {
-      letter-spacing: 0.04em;
-      border-bottom: 3px double var(--mono-border);
-      padding-bottom: 0.6rem;
-      margin-bottom: 1.4rem !important;
-      color: var(--mono-ink);
-      font-weight: 800;
-    }
-    select, input[type="text"], input[type="number"], input:not([type="checkbox"]) {
-      background: var(--mono-white) !important;
-      border: 1.5px solid #a1a1aa !important;
-      border-radius: 2px !important;
-      color: var(--mono-ink);
-    }
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--mono-ink) !important;
-      box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12);
-    }
-    button { border-radius: 2px !important; letter-spacing: 0.03em; font-weight: 600; }
-    #generateBtn, button.bg-blue-600 {
-      background: var(--mono-ink) !important;
-      border: 2px solid var(--mono-ink) !important;
-      color: var(--mono-white) !important;
-    }
-    #applyPromoBtn, button.bg-emerald-600 {
-      background: #3f3f46 !important;
-      border: 2px solid var(--mono-ink) !important;
-      color: var(--mono-white) !important;
-    }
-    #promoBox {
-      background: #f4f4f5 !important;
-      border: 2px solid var(--mono-border) !important;
-      border-left-width: 6px !important;
-      border-radius: 2px !important;
-    }
-    #promoBox .text-zinc-900, #promoBox .text-zinc-800, #promoBox .text-zinc-700 {
-      color: var(--mono-ink) !important;
-    }
-    .border-blue-300 { border-color: #71717a !important; background: #f4f4f5 !important; border-radius: 2px !important; }
-    .text-blue-900, .text-blue-800 { color: var(--mono-ink) !important; }
-    #result table { border: 2px solid var(--mono-border); border-collapse: collapse; background: var(--mono-white); }
-    #result th { background: var(--mono-ink); color: var(--mono-white); border: 1px solid #52525b; font-weight: 600; }
-    #result td { border: 1px solid #d4d4d8; color: var(--mono-ink); }
-    #result tr:nth-child(even) td { background: #f4f4f5; }
-    #result .bg-blue-50 { background: var(--mono-ink) !important; color: var(--mono-white) !important; }
-    details { border: 1.5px solid #a1a1aa !important; border-radius: 2px !important; background: var(--mono-white) !important; }
-    .bg-white { background-color: var(--mono-panel) !important; }
-    .text-gray-900 { color: var(--mono-ink) !important; }
-    .text-gray-600, .text-gray-700, .text-gray-800 { color: var(--mono-muted) !important; }
-    .text-zinc-900, .text-zinc-800, .text-zinc-700 { color: var(--mono-ink) !important; }
-    .bg-zinc-50, .bg-amber-50, .bg-emerald-50, .bg-blue-50 { background: #f4f4f5 !important; }
-    .border-zinc-500, .border-amber-400, .border-emerald-400, .border-blue-300 { border-color: #71717a !important; }
-    a { color: #3f3f46; }
-    a:hover { color: var(--mono-ink); text-decoration: underline; }
   </style>
 </head>
 <body class="bg-white text-gray-900">
@@ -89,10 +17,12 @@
     <h1 class="text-3xl font-extrabold mb-4">Poly Video Conferencing "Bill" of Materials Generator</h1>
     <div id="app">Loading...</div>
   </div>
+
+  <!-- IMPORTANT: cache-busted script reference -->
   <script>
   (function(){
     var s=document.createElement('script');
-    s.src='script.js?v=1017&ts='+Date.now();
+    s.src='script.js?v=1018&ts='+Date.now();
     s.defer=true;
     document.currentScript.parentNode.insertBefore(s, document.currentScript);
   })();
