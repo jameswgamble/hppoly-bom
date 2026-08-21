@@ -1,16 +1,28 @@
 
-const VERSION = "v9.95";
-// script.js – HP | Poly Configurator – v9.95 (full TAA/JITC product path + support mapping)
+const VERSION = "v9.96";
+// script.js – HP | Poly Configurator – v9.96 (TAA path + cache-busted catalog + SKU alias lookup)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
 async function init() {
-  const res = await fetch('skus_merged.json');
+  // Cache-bust so browsers/CDN never serve a stale skus_merged.json
+  const res = await fetch('skus_merged.json?v=' + encodeURIComponent(VERSION) + '&t=' + Date.now(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load skus_merged.json (${res.status})`);
   const catalog = await res.json();
 
   // ---------- helpers ----------
-  const getItem = sku => catalog[sku] || null;
+  // Resolve SKU with common aliases (plain vs #ABA / #AC3 region suffixes)
+  const getItem = sku => {
+    if (!sku) return null;
+    if (catalog[sku]) return catalog[sku];
+    const base = String(sku).split('#')[0];
+    if (catalog[base]) return catalog[base];
+    if (catalog[base + '#ABA']) return catalog[base + '#ABA'];
+    if (catalog[base + '#AC3']) return catalog[base + '#AC3'];
+    if (catalog[sku + '#ABA']) return catalog[sku + '#ABA'];
+    if (catalog[sku + '#AC3']) return catalog[sku + '#AC3'];
+    return null;
+  };
   const hasSku = (arr, sku) => arr.some(x => x.sku === sku);
   const addLine = (arr, sku, fallback="(Custom item)", qty=1) => {
     const item = getItem(sku);
@@ -18,8 +30,8 @@ async function init() {
     if (existing) { existing.quantity += qty; return; }
     arr.push({
       sku,
-      description: item?.description || fallback,
-      msrp: item?.msrp ?? "",
+      description: (item && item.description) ? item.description : fallback,
+      msrp: (item && item.msrp != null) ? item.msrp : "",
       quantity: qty
     });
   };
