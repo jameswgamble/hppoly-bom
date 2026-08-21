@@ -1,6 +1,6 @@
 
-const VERSION = "v10.06";
-// script.js – HP | Poly Configurator – v10.06 (BOM total only on last row; no per-line totals)
+const VERSION = "v10.07";
+// script.js – HP | Poly Configurator – v10.07 (announcement + featured promo config; E70 camera add-on for X52/X72)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -149,6 +149,35 @@ async function init() {
   const form = document.createElement("form");
   form.className = "space-y-4";
 
+  // ---------- Announcement banner (edit text below to update site-wide message) ----------
+  const ANNOUNCEMENT_HTML = `
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-semibold text-amber-900">📢 Announcement</div>
+        <p class="text-sm text-amber-900 mt-0.5">New: Optional Poly E70 AI camera is now available as an add-on for Studio X52 and X72 (in addition to G62). Use the featured config below to try a complete Teams Android medium-room BOM with 3-year Poly+ and E70.</p>
+      </div>
+      <button type="button" id="dismissAnnouncement" class="shrink-0 text-amber-700 hover:text-amber-900 text-lg leading-none px-1" title="Dismiss">×</button>
+    </div>
+  `;
+  const announceWrap = document.createElement("div");
+  announceWrap.id = "announcementBox";
+  announceWrap.className = "p-3 border-2 border-amber-400 rounded bg-amber-50";
+  announceWrap.innerHTML = ANNOUNCEMENT_HTML;
+  form.appendChild(announceWrap);
+
+  // ---------- Featured promotional config ----------
+  const promoWrap = document.createElement("div");
+  promoWrap.id = "promoBox";
+  promoWrap.className = "p-4 border-2 border-emerald-400 rounded bg-emerald-50 space-y-2";
+  promoWrap.innerHTML = `
+    <div class="font-semibold text-emerald-900">⭐ Featured configuration</div>
+    <p class="text-sm text-emerald-900">Microsoft Teams · Android appliance · Medium room · 3yr Poly+ · Poly E70 AI camera (auto-tracking / camera switching)</p>
+    <button type="button" id="applyPromoBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded shadow-sm">
+      Apply this config & generate BOM
+    </button>
+  `;
+  form.appendChild(promoWrap);
+
   // TAA / JITC compliance toggle (includes note on No Radio variants)
   const taaWrap = document.createElement("div");
   taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-1";
@@ -211,16 +240,18 @@ async function init() {
   a2QtyHome.appendChild(a2QtyWrap);
   form.appendChild(a2QtyHome);
 
-  // Camera picker (G62)
+  // Optional camera add-on (E70 AI Director / E60) — shown for Android Medium (X52), Large (X72), Very large (G62)
   const camWrap = document.createElement("div");
   camWrap.id = "cameraWrap";
   camWrap.className = "hidden";
-  camWrap.innerHTML = `<label class="block font-medium">Select Camera (for G62 very large rooms)</label>
+  camWrap.innerHTML = `
+    <label class="block font-medium">Optional Camera add-on</label>
     <select id="cameraChoice" class="border p-2 w-full">
-      <option value="None">None</option>
+      <option value="None">None (use built-in camera)</option>
+      <option value="E70">Poly E70 (842F8AA) — AI Director auto-tracking / camera switching</option>
       <option value="E60">Poly E60 (9W1A6AA#AC3)</option>
-      <option value="E70">Poly E70 (842F8AA)</option>
-    </select>`;
+    </select>
+    <p class="text-xs text-gray-600 mt-1">E70 recommended when you want AI camera switching / speaker tracking on X52, X72, or G62.</p>`;
   form.appendChild(camWrap);
 
   // Modular / Custom rooms (multi-camera + audio options)
@@ -391,7 +422,7 @@ async function init() {
             <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
           </tr>
           <tr>
-            <td class="border border-blue-100 px-2 py-1 font-medium">Enterprise integration &amp; IT tools</td>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Enterprise integration & IT tools</td>
             <td class="border border-blue-100 px-2 py-1">Broader estate tooling and integration for IT success.</td>
             <td class="border border-blue-100 px-2 py-1 text-center">—</td>
             <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
@@ -436,10 +467,16 @@ async function init() {
     const s = document.getElementById("typeOfSystem").value;
     platformInfo.classList.toggle("hidden", !(s==="Windows PC based solution" && p==="Google Meet"));
   }
+  function canShowCameraAddOn(){
+    const t = document.getElementById("typeOfSystem")?.value || "";
+    const r = document.getElementById("roomSize")?.value || "";
+    // X52 (Medium), X72 (Large), G62 (Very large) — Android only
+    return t === "Android appliance based solution" && (r === "Medium" || r === "Large" || r === "Very large");
+  }
   function updateCameraVisibility(){
-    const t = document.getElementById("typeOfSystem").value;
-    const r = document.getElementById("roomSize").value;
-    camWrap.classList.toggle("hidden", !(t==="Android appliance based solution" && r==="Very large"));
+    // modular UI may further hide this; base rule is Android Medium/Large/Very large
+    const modularActive = (document.getElementById("roomSize")?.value === "Custom/Modular");
+    camWrap.classList.toggle("hidden", modularActive || !canShowCameraAddOn());
   }
   // Max A2 table mics per host (HP Poly Studio A2 admin guide)
   // V12: 1 | X32: 2 | X52/V52: 4 | X72/V72: 4 | G62: 8
@@ -626,8 +663,8 @@ async function init() {
         a2QtyWrap.classList.toggle("hidden", true);
       }
     }
-    // Hide single-camera picker if modular is active
-    camWrap.classList.toggle("hidden", active ? true : !(t==="Android appliance based solution" && r==="Very large"));
+    // Hide single-camera picker if modular is active; otherwise show for Android Medium/Large/Very large
+    camWrap.classList.toggle("hidden", active ? true : !canShowCameraAddOn());
   }
   document.getElementById("platform").addEventListener("change", ()=>{updatePlatformInfo();updateCustomRoomSizeOption();updateCameraVisibility();updateExpansionMicUI();updateModularUI();});
   document.getElementById("typeOfSystem").addEventListener("change", ()=>{updatePlatformInfo();updateCustomRoomSizeOption();updateCameraVisibility();updateExpansionMicUI();updateModularUI();});
@@ -636,6 +673,51 @@ async function init() {
   document.getElementById("audioOption").addEventListener("change", ()=>{updateModularUI();});
   document.getElementById("polyMicOption").addEventListener("change", ()=>{updateModularUI();});
   updateCustomRoomSizeOption(); updatePlatformInfo(); updateCameraVisibility(); updateExpansionMicUI(); updateRoomSizeHint(); updateModularUI();
+
+  // ---------- Announcement dismiss (session) ----------
+  const dismissBtn = document.getElementById("dismissAnnouncement");
+  if (dismissBtn) {
+    if (sessionStorage.getItem("polyBomAnnounceDismissed") === "1") {
+      announceWrap.classList.add("hidden");
+    }
+    dismissBtn.addEventListener("click", () => {
+      announceWrap.classList.add("hidden");
+      sessionStorage.setItem("polyBomAnnounceDismissed", "1");
+    });
+  }
+
+  // ---------- Featured promo: auto-fill Teams Android Medium + 3yr Poly+ + E70 ----------
+  const applyPromoBtn = document.getElementById("applyPromoBtn");
+  if (applyPromoBtn) {
+    applyPromoBtn.addEventListener("click", () => {
+      // Clear TAA so commercial path is used (promo is commercial)
+      const taaCb = document.getElementById("taaJitc");
+      if (taaCb) taaCb.checked = false;
+
+      document.getElementById("typeOfSystem").value = "Android appliance based solution";
+      document.getElementById("platform").value = "Microsoft Teams";
+      document.getElementById("roomSize").value = "Medium";
+      document.getElementById("mounting").value = "None";
+      document.getElementById("expansionMic").value = "None";
+      document.getElementById("schedulingPanel").value = "None";
+      document.getElementById("supportTerm").value = "poly3";
+      document.getElementById("implementationHelp").value = "None";
+      const acc = document.getElementById("accessories");
+      if (acc) acc.value = "";
+
+      // Fire change handlers so camera picker becomes visible
+      document.getElementById("typeOfSystem").dispatchEvent(new Event("change"));
+      document.getElementById("platform").dispatchEvent(new Event("change"));
+      document.getElementById("roomSize").dispatchEvent(new Event("change"));
+
+      // Set E70 after visibility updates
+      const camSel = document.getElementById("cameraChoice");
+      if (camSel) camSel.value = "E70";
+
+      // Generate immediately
+      generate();
+    });
+  }
 
   // ---------- core generate ----------
   btn.addEventListener("click", () => generate());
@@ -742,15 +824,20 @@ async function init() {
         addSupport(results, "a2_bridge", supportTerm);
       }
 
-      // G62 camera add-ons (TAA)
-      if (hasSku(results, "99T11AA") || hasSku(results, "99T10AA") || hasSku(results, "99T12AA") || hasSku(results, "99T13AA")) {
-        const cam = document.getElementById("cameraChoice")?.value;
-        if (cam === "E60") {
-          addLine(results, "9W1A7AA"); // E60 TAA
-          addSupport(results, "e60", supportTerm);
-        } else if (cam === "E70") {
-          addLine(results, pick("886C9AA", "886C8AA")); // E70 TAA JITC / TAA
-          addSupport(results, "e70", supportTerm);
+      // Camera add-ons (TAA) for G62 / X52 / X72
+      {
+        const isG62 = hasSku(results, "99T11AA") || hasSku(results, "99T10AA") || hasSku(results, "99T12AA") || hasSku(results, "99T13AA");
+        const isX52 = hasSku(results, "8D8K4AA") || hasSku(results, "8D8K3AA");
+        const isX72 = hasSku(results, "A4MA2AA") || hasSku(results, "A4MA1AA") || hasSku(results, "A4MA6AA") || hasSku(results, "A4MA4AA");
+        if (isG62 || isX52 || isX72) {
+          const cam = document.getElementById("cameraChoice")?.value;
+          if (cam === "E60") {
+            addLine(results, "9W1A7AA"); // E60 TAA
+            addSupport(results, "e60", supportTerm);
+          } else if (cam === "E70") {
+            addLine(results, pick("886C9AA", "886C8AA")); // E70 TAA JITC / TAA
+            addSupport(results, "e70", supportTerm);
+          }
         }
       }
 
@@ -925,11 +1012,13 @@ async function init() {
       if (!hasSku(results,"A01KCAA#AC3")) addLine(results,"A01KCAA#AC3");
     }
 
-    // G62 camera add-ons
+    // Optional camera add-ons (E70 / E60) for X52, X72, G62
     (function(){
       const isG62 = hasSku(results,"A01KCAA#AC3");
-      if (!isG62) return;
-      const cam = document.getElementById("cameraChoice").value;
+      const isX52 = hasSku(results,"8D8K2AA#ABA");
+      const isX72 = hasSku(results,"A4LZ8AA#ABA");
+      if (!isG62 && !isX52 && !isX72) return;
+      const cam = document.getElementById("cameraChoice")?.value;
       if (cam==="E60"){
         if (!hasSku(results,"9W1A6AA#AC3")) addLine(results,"9W1A6AA#AC3");
         addSupport(results, "e60", supportTerm);
@@ -937,7 +1026,8 @@ async function init() {
         if (!hasSku(results,"842F8AA")) addLine(results,"842F8AA");
         addSupport(results, "e70", supportTerm);
       }
-      if (!hasSku(results,"875K5AA")){
+      // G62 path historically ensured TC10 here
+      if (isG62 && !hasSku(results,"875K5AA")){
         addLine(results,"875K5AA");
         addSupport(results, "tc10", supportTerm);
       }
