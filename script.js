@@ -1,6 +1,5 @@
-
-const VERSION = "v10.07";
-// script.js – HP | Poly Configurator – v10.07 (announcement + featured promo config; E70 camera add-on for X52/X72)
+const VERSION = "v10.08";
+// script.js – HP | Poly Configurator – v10.08 (X52+E70 reference video link; kit-only note for Teams/Zoom/Meet)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -155,6 +154,7 @@ async function init() {
       <div>
         <div class="font-semibold text-amber-900">📢 Announcement</div>
         <p class="text-sm text-amber-900 mt-0.5">New: Optional Poly E70 AI camera is now available as an add-on for Studio X52 and X72 (in addition to G62). Use the featured config below to try a complete Teams Android medium-room BOM with 3-year Poly+ and E70.</p>
+        <p class="text-sm text-amber-900 mt-1">X52 + E70 top reference (kit only · Microsoft Teams / Zoom / Google Meet): <a href="https://youtu.be/2AX-8x6CWN0?si=8O1Vp7uUVrohw1j1" target="_blank" rel="noopener" class="underline font-medium text-amber-800 hover:text-amber-950">Watch video</a></p>
       </div>
       <button type="button" id="dismissAnnouncement" class="shrink-0 text-amber-700 hover:text-amber-900 text-lg leading-none px-1" title="Dismiss">×</button>
     </div>
@@ -172,6 +172,7 @@ async function init() {
   promoWrap.innerHTML = `
     <div class="font-semibold text-emerald-900">⭐ Featured configuration</div>
     <p class="text-sm text-emerald-900">Microsoft Teams · Android appliance · Medium room · 3yr Poly+ · Poly E70 AI camera (auto-tracking / camera switching)</p>
+    <p class="text-xs text-emerald-800">Kit only · works with Microsoft Teams, Zoom, or Google Meet · <a href="https://youtu.be/2AX-8x6CWN0?si=8O1Vp7uUVrohw1j1" target="_blank" rel="noopener" class="underline font-medium">X52 + E70 reference video</a></p>
     <button type="button" id="applyPromoBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded shadow-sm">
       Apply this config & generate BOM
     </button>
@@ -251,7 +252,7 @@ async function init() {
       <option value="E70">Poly E70 (842F8AA) — AI Director auto-tracking / camera switching</option>
       <option value="E60">Poly E60 (9W1A6AA#AC3)</option>
     </select>
-    <p class="text-xs text-gray-600 mt-1">E70 recommended when you want AI camera switching / speaker tracking on X52, X72, or G62.</p>`;
+    <p class="text-xs text-gray-600 mt-1">E70 recommended for AI camera switching / speaker tracking on X52, X72, or G62. <strong>Kit only</strong> · works with Microsoft Teams, Zoom, or Google Meet. <a href="https://youtu.be/2AX-8x6CWN0?si=8O1Vp7uUVrohw1j1" target="_blank" rel="noopener" class="text-blue-600 underline">X52 + E70 top reference video</a></p>`;
   form.appendChild(camWrap);
 
   // Modular / Custom rooms (multi-camera + audio options)
