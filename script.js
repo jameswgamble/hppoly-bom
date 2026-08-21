@@ -1,1 +1,2 @@
-PLACEHOLDER_WILL_REPLACE
+const VERSION = "v10.24";
+// TEMP PLACEHOLDER - full file will follow
