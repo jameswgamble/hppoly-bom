@@ -1,6 +1,6 @@
 
-const VERSION = "v10.03";
-// script.js – HP | Poly Configurator – v10.03 (No Radio works in commercial path too; uses TAA NR SKUs)
+const VERSION = "v10.04";
+// script.js – HP | Poly Configurator – v10.04 (single TAA/JITC checkbox; No Radio noted in description)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -136,20 +136,15 @@ async function init() {
   const form = document.createElement("form");
   form.className = "space-y-4";
 
-  // TAA / JITC + No Radio toggles
+  // TAA / JITC compliance toggle (includes note on No Radio variants)
   const taaWrap = document.createElement("div");
-  taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-2";
+  taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-1";
   taaWrap.innerHTML = `
     <label class="inline-flex items-center gap-2 cursor-pointer">
       <input id="taaJitc" type="checkbox" class="w-4 h-4 border">
       <span class="font-semibold text-blue-900">TAA / JITC compliant configuration only</span>
     </label>
-    <p class="text-xs text-blue-800 ml-6">When checked, only TAA/JITC-compliant SKUs are used. Standard commercial hardware is excluded. Support terms still apply.</p>
-    <label class="inline-flex items-center gap-2 cursor-pointer">
-      <input id="noRadio" type="checkbox" class="w-4 h-4 border">
-      <span class="font-semibold text-blue-900">No Radio configuration</span>
-    </label>
-    <p class="text-xs text-blue-800 ml-6">Applies to TC10, Studio X, Studio V, and G62 in both commercial and TAA modes. Public No Radio part numbers are TAA/GSA SKUs (no separate non-TAA No Radio SKUs published). Room Compute TAA units are already No Radio.</p>
+    <p class="text-xs text-blue-800 ml-6">When checked, only TAA/JITC-compliant SKUs are used. Standard commercial hardware is excluded. Support terms still apply. No Radio (Wi‑Fi/Bluetooth disabled) TAA variants exist for TC10, Studio X, Studio V, and G62 for restricted RF environments; Room Compute TAA units are already No Radio.</p>
   `;
   form.appendChild(taaWrap);
 
@@ -585,7 +580,6 @@ async function init() {
     const accessories  = (document.getElementById("accessories").value || "").split(",").map(s=>s.trim()).filter(Boolean);
     const includePrices= document.getElementById("includePrices").checked;
     const taaJitc      = document.getElementById("taaJitc")?.checked || false;
-    const noRadio      = document.getElementById("noRadio")?.checked || false;
 
     if (!typeOfSystem || !platform || !roomSize){
       resultDiv.innerHTML = `<div class="text-red-700 bg-red-50 border border-red-200 p-3 rounded">Please select System type, Platform, and Room size.</div>`;
@@ -596,52 +590,29 @@ async function init() {
     const isUSBorPC = (typeOfSystem==="BYOD USB Bar only" || typeOfSystem==="Windows PC based solution");
 
     // ========== TAA / JITC MODE ==========
-    // Prefer JITC when available. When No Radio is checked, prefer No Radio variants
-    // for TC10, Studio X, and Studio V only (G62 / cameras / A2 unchanged).
+    // Prefer JITC variant when available; fall back to TAA-only (radio variants).
     if (taaJitc) {
-      // opts: { radioJitc, radioTaa, noRadioJitc, noRadioTaa }
-      const pickFamily = (opts) => {
-        if (noRadio) {
-          return opts.noRadioJitc || opts.noRadioTaa || opts.radioJitc || opts.radioTaa || null;
-        }
-        return opts.radioJitc || opts.radioTaa || opts.noRadioJitc || opts.noRadioTaa || null;
-      };
-      // Simple JITC-prefer for devices without No Radio variants
       const pick = (jitcSku, taaSku) => jitcSku || taaSku;
-
-      // TC10 Black — Radio vs No Radio
-      const tc10Sku = () => pickFamily({
-        radioJitc: "973F9AA", radioTaa: "977L6AA",
-        noRadioJitc: "973G0AA", noRadioTaa: "977L7AA"
-      });
+      const tc10Sku = () => pick("973F9AA", "977L6AA"); // Black TC10 TAA JITC / TAA
 
       if (isUSBorPC) {
         // USB / PC based → V-series bars
         if (roomSize === "Small") {
-          addLine(results, pickFamily({
-            radioJitc: null, radioTaa: "B95SPAA",
-            noRadioJitc: null, noRadioTaa: "B95SNAA"
-          })); // V12
+          addLine(results, "B95SPAA"); // V12 TAA
           addSupport(results, "v12", supportTerm);
         } else if (roomSize === "Medium") {
-          addLine(results, pickFamily({
-            radioJitc: "A09D6AA", radioTaa: "A09D5AA",
-            noRadioJitc: "A09D9AA", noRadioTaa: "A09D8AA"
-          })); // V52
+          addLine(results, pick("A09D6AA", "A09D5AA")); // V52
           addSupport(results, "v52", supportTerm);
         } else {
-          addLine(results, pickFamily({
-            radioJitc: "AV1E4AA", radioTaa: null,
-            noRadioJitc: "AV1E6AA", noRadioTaa: null
-          })); // V72
+          addLine(results, pick("AV1E4AA", null)); // V72
           addSupport(results, "v72", supportTerm);
         }
         if (typeOfSystem === "Windows PC based solution") {
           if (platform === "Microsoft Teams") {
             if (roomSize === "Small" || roomSize === "Medium") {
-              addLine(results, "DS1R6AW"); // Studio 5 Room Compute TAA
+              addLine(results, "DS1R6AW"); // Studio 5 Room Compute TAA (already No Radio)
             } else {
-              addLine(results, "DS0W9AW"); // Studio 7 Room Compute TAA
+              addLine(results, "DS0W9AW"); // Studio 7 Room Compute TAA (already No Radio)
             }
             addSupport(results, "g9plus_mtr", supportTerm);
             addLine(results, tc10Sku());
@@ -654,35 +625,24 @@ async function init() {
       } else {
         // Android appliance → X-series / G62
         if (roomSize === "Small") {
-          addLine(results, pickFamily({
-            radioJitc: "A3SW0AA", radioTaa: "A3SV9AA",
-            noRadioJitc: "A3SW2AA", noRadioTaa: "A3SW1AA"
-          })); // X32
+          addLine(results, pick("A3SW0AA", "A3SV9AA")); // X32
           addSupport(results, "x32", supportTerm);
           addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else if (roomSize === "Medium") {
-          // X52 — no No Radio variants in catalog; always radio TAA/JITC
-          addLine(results, pick("8D8K4AA", "8D8K3AA"));
+          addLine(results, pick("8D8K4AA", "8D8K3AA")); // X52
           addSupport(results, "x52", supportTerm);
           addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else if (roomSize === "Large") {
-          addLine(results, pickFamily({
-            radioJitc: "A4MA2AA", radioTaa: "A4MA1AA",
-            noRadioJitc: "A4MA6AA", noRadioTaa: "A4MA4AA"
-          })); // X72
+          addLine(results, pick("A4MA2AA", "A4MA1AA")); // X72
           addSupport(results, "x72", supportTerm);
           addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else {
-          // Very large → G62 (has No Radio TAA / TAA JITC variants)
-          addLine(results, pickFamily({
-            radioJitc: "99T11AA", radioTaa: "99T10AA",
-            noRadioJitc: "99T13AA", noRadioTaa: "99T12AA"
-          }));
+          addLine(results, pick("99T11AA", "99T10AA")); // G62
           addSupport(results, "g62", supportTerm);
-          addLine(results, tc10Sku()); // TC10 still respects No Radio
+          addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         }
       }
@@ -828,27 +788,15 @@ async function init() {
 
     } else if (!taaJitc) {
 
-    // No Radio commercial path: public No Radio SKUs are TAA/GSA part numbers.
-    // When No Radio is checked, use those (only available form) and note it on the BOM.
-    const commercialTc10 = () => noRadio ? "977L7AA" : "875K5AA"; // No Radio TAA vs standard TC10
-    if (noRadio) {
-      results.push({
-        sku: "",
-        description: "Note: No Radio units use TAA/GSA part numbers (no separate commercial No Radio SKUs published).",
-        msrp: "",
-        quantity: 1
-      });
-    }
-
     if (isUSBorPC){
       if (roomSize==="Small"){
-        addLine(results, noRadio ? "B95SNAA" : "A9DD8AA#ABA"); // V12
+        addLine(results,"A9DD8AA#ABA"); // V12
         addSupport(results, "v12", supportTerm);
       } else if (roomSize==="Medium"){
-        addLine(results, noRadio ? "A09D8AA" : "A09D4AA#ABA"); // V52
+        addLine(results,"A09D4AA#ABA"); // V52
         addSupport(results, "v52", supportTerm);
       } else { // Large or Very large -> V72
-        addLine(results, noRadio ? "AV1E6AA" : "AV1E3AA#ABA");
+        addLine(results,"AV1E3AA#ABA");
         addSupport(results, "v72", supportTerm);
       }
 
@@ -856,12 +804,12 @@ async function init() {
         if (platform==="Zoom"){
           addLine(results,"9C422AW#ABA","HP Mini Conf G9 wZR i7-12700T 16GB Zoom Room PC only (must add TC10, Camera, Audio)");
           addSupport(results, "zoom_pc", supportTerm);
-          addLine(results, commercialTc10());
+          addLine(results,"875K5AA");
           addSupport(results, "tc10", supportTerm);
         } else if (platform==="Microsoft Teams"){
           addLine(results,"A1ZB6AW#ABA"); // G9Plus MTR PC only
           addSupport(results, "g9plus_mtr", supportTerm);
-          addLine(results, commercialTc10());
+          addLine(results,"875K5AA");
           addSupport(results, "tc10", supportTerm);
         } else if (platform==="Google Meet"){
           addLine(results,"9C422AW#ABA");
@@ -871,22 +819,20 @@ async function init() {
     } else {
       // Android
       if (roomSize==="Small"){
-        addLine(results, noRadio ? "A3SW1AA" : "A3SV5AA#ABA"); // X32
+        addLine(results,"A3SV5AA#ABA"); // X32
         addSupport(results, "x32", supportTerm);
       } else if (roomSize==="Medium"){
-        // X52: no commercial No Radio; use TAA No Radio bar if requested (8D8K3AA is radio TAA; no 8D8K8 in catalog)
-        addLine(results, noRadio ? "8D8K3AA" : "8D8K2AA#ABA"); // fallback radio TAA if no dedicated NR SKU in catalog
+        addLine(results,"8D8K2AA#ABA"); // X52
         addSupport(results, "x52", supportTerm);
-        addLine(results, commercialTc10());
+        addLine(results,"875K5AA");
         addSupport(results, "tc10", supportTerm);
       } else if (roomSize==="Large"){
-        addLine(results, noRadio ? "A4MA4AA" : "A4LZ8AA#ABA"); // X72
+        addLine(results,"A4LZ8AA#ABA"); // X72
         addSupport(results, "x72", supportTerm);
-        addLine(results, commercialTc10());
+        addLine(results,"875K5AA");
         addSupport(results, "tc10", supportTerm);
       } else {
-        // Very large -> G62
-        addLine(results, noRadio ? "99T12AA" : "A01KCAA#AC3");
+        addLine(results,"A01KCAA#AC3"); // G62
         addSupport(results, "g62", supportTerm);
       }
     }
@@ -898,48 +844,42 @@ async function init() {
     // Guard: Android Very Large must be G62 (remove X72 if present)
     if (typeOfSystem==="Android appliance based solution" && roomSize==="Very large"){
       for (let i=results.length-1;i>=0;i--){
-        if (["A4MA7AA#ABA","U98SXPV","U98SYPV","A4MA4AA","A4LZ8AA#ABA"].includes(results[i].sku)) results.splice(i,1);
+        if (["A4MA7AA#ABA","U98SXPV","U98SYPV","A4LZ8AA#ABA"].includes(results[i].sku)) results.splice(i,1);
       }
-      const g62Sku = noRadio ? "99T12AA" : "A01KCAA#AC3";
-      if (!hasSku(results,"A01KCAA#AC3") && !hasSku(results,"99T12AA") && !hasSku(results,"99T13AA") && !hasSku(results,"99T10AA") && !hasSku(results,"99T11AA")) {
-        addLine(results, g62Sku);
-      }
+      if (!hasSku(results,"A01KCAA#AC3")) addLine(results,"A01KCAA#AC3");
     }
 
     // G62 camera add-ons
     (function(){
-      const isG62 = hasSku(results,"A01KCAA#AC3") || hasSku(results,"99T12AA") || hasSku(results,"99T13AA") || hasSku(results,"99T10AA") || hasSku(results,"99T11AA");
+      const isG62 = hasSku(results,"A01KCAA#AC3");
       if (!isG62) return;
       const cam = document.getElementById("cameraChoice").value;
       if (cam==="E60"){
-        if (!hasSku(results,"9W1A6AA#AC3") && !hasSku(results,"9W1A7AA")) addLine(results, noRadio ? "9W1A7AA" : "9W1A6AA#AC3");
+        if (!hasSku(results,"9W1A6AA#AC3")) addLine(results,"9W1A6AA#AC3");
         addSupport(results, "e60", supportTerm);
       } else if (cam==="E70"){
-        if (!hasSku(results,"842F8AA") && !hasSku(results,"886C8AA") && !hasSku(results,"886C9AA")) addLine(results, noRadio ? "886C8AA" : "842F8AA");
+        if (!hasSku(results,"842F8AA")) addLine(results,"842F8AA");
         addSupport(results, "e70", supportTerm);
       }
-      // G62 requires TC10
-      const hasTc10 = hasSku(results,"875K5AA") || hasSku(results,"977L7AA") || hasSku(results,"973G0AA") || hasSku(results,"977L6AA") || hasSku(results,"973F9AA");
-      if (!hasTc10){
-        addLine(results, noRadio ? "977L7AA" : "875K5AA");
+      if (!hasSku(results,"875K5AA")){
+        addLine(results,"875K5AA");
         addSupport(results, "tc10", supportTerm);
       }
     })();
 
     // X32 extras: PoE + TC10 (+ PolyPlus)
-    if (hasSku(results,"A3SV5AA#ABA") || hasSku(results,"A3SW1AA") || hasSku(results,"A3SW2AA") || hasSku(results,"A3SV9AA") || hasSku(results,"A3SW0AA")){
+    if (hasSku(results,"A3SV5AA#ABA")){
       if (!hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
-      const hasTc10 = hasSku(results,"875K5AA") || hasSku(results,"977L7AA") || hasSku(results,"973G0AA") || hasSku(results,"977L6AA") || hasSku(results,"973F9AA");
-      if (!hasTc10) addLine(results, noRadio ? "977L7AA" : "875K5AA");
+      if (!hasSku(results,"875K5AA")) addLine(results,"875K5AA");
       addSupport(results, "tc10", supportTerm);
     }
 
     // V12 needs same PoE injector as X32
-    if ((hasSku(results,"A9DD8AA#ABA") || hasSku(results,"B95SNAA") || hasSku(results,"B95SPAA")) && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
+    if (hasSku(results,"A9DD8AA#ABA") && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
 
     // Scheduling panel = TC10
     if (scheduling==="Yes"){
-      addLine(results, noRadio ? "977L7AA" : "875K5AA", "Poly TC10 touch controller (as scheduling panel)");
+      addLine(results,"875K5AA","Poly TC10 touch controller (as scheduling panel)");
       addSupport(results, "tc10", supportTerm);
     }
 
