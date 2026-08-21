@@ -1,6 +1,6 @@
-const VERSION = "v10.21";
-// script.js – HP | Poly Configurator – v10.21: restored A2 mic quantity selector + logic for both commercial & TAA
-// Features: A2 qty (with host max), E60/E70 mounts + PoE injector, TAA path, promo, MSRP
+const VERSION = "v10.22";
+// script.js – HP | Poly Configurator – v10.22: A2 bridge PoE (A02F9AA), announcement, Poly+ description, A2 qty
+// Features: A2 bridge power injector, Announcement, Poly+ vs Analyze, A2 qty, E60/E70 mounts + PoE, TAA
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -98,15 +98,17 @@ async function init() {
   const form = document.createElement("form");
   form.className = "space-y-4";
 
-  // Featured configuration
+  // Announcement banner (support + TC10 scheduler updates)
   const promoWrap = document.createElement("div");
   promoWrap.id = "promoBox";
-  promoWrap.className = "p-3 border-2 border-zinc-500 rounded bg-zinc-50 space-y-2";
+  promoWrap.className = "p-3 border-2 border-amber-400 rounded bg-amber-50 space-y-2";
   promoWrap.innerHTML = `
-    <div class="font-semibold text-zinc-900">📢 Featured configuration</div>
-    <p class="text-sm text-zinc-800">Microsoft Teams · Android appliance · Medium room · 3yr Poly+ · Poly E70 AI camera (auto-tracking / camera switching)</p>
-    <p class="text-xs text-zinc-700">Kit only · works with Microsoft Teams, Zoom, or Google Meet · <a href="https://youtu.be/2AX-8x6CWN0?si=8O1Vp7uUVrohw1j1" target="_blank" rel="noopener" class="underline font-medium">X52 + E70 reference video</a></p>
-    <button type="button" id="applyPromoBtn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded shadow-sm">Apply this config &amp; generate BOM</button>`;
+    <div class="font-semibold text-amber-900">📢 Announcement — new support &amp; TC10 scheduler options</div>
+    <ul class="text-sm text-amber-950 list-disc pl-5 space-y-1">
+      <li><strong>Support additions:</strong> 1 / 3 / 5 year <strong>Poly+</strong> and <strong>Poly+ Analyze</strong> terms are now selectable for the main system, cameras (E60/E70), A2 mics, and TC10. Poly+ Analyze includes estate-wide coverage and Lens Pro insights.</li>
+      <li><strong>TC10 scheduler additions:</strong> Optional outside-room TC10 scheduling panel in Black or White, with wall mount (included) or glass mount. Available in both commercial and TAA/JITC paths.</li>
+    </ul>
+    <p class="text-xs text-amber-800">Select Support term and Scheduling panel below to include these on the BOM.</p>`;
   form.appendChild(promoWrap);
 
   // TAA / JITC
@@ -207,6 +209,16 @@ async function init() {
     { value: "analyze3", label: "3yr - Poly+ Analyze" },
     { value: "analyze5", label: "5yr - Poly+ Analyze" }
   ]));
+
+  // Brief overview of Poly+ vs Poly+ Analyze
+  const supportInfo = document.createElement("div");
+  supportInfo.className = "text-xs text-gray-700 mt-1 p-2 border-l-4 border-blue-400 bg-blue-50 rounded";
+  supportInfo.innerHTML = `
+    <strong>Poly+</strong> — Essential support: unlimited 24/7 priority technical support, next-business-day advance hardware replacement, and ecosystem cloud partner support.<br>
+    <strong>Poly+ Analyze</strong> — Premium tier that includes everything in Poly+ <em>plus</em> coverage for your entire HP Poly estate, HP Poly Lens Pro for Rooms (advanced insights), and enterprise integration / IT tools.<br>
+    <a href="https://info.lens.poly.com/docs/premium-Poly-Lens/poly-plus-enterprise#hp-poly-analyze" target="_blank" rel="noopener" class="text-blue-700 underline">Learn more about Poly+ and Poly+ Analyze</a>`;
+  form.appendChild(supportInfo);
+
   form.appendChild(select("implementationHelp", "Implementation Help", [
     "None", "Remote Implementation help", "Onsite Implementation help"
   ]));
@@ -464,6 +476,8 @@ async function init() {
         addSupport(results, "a2_mic", supportTerm, a2Qty);
         addLine(results, "B22X3AA"); // A2 Bridge TAA (one per system)
         addSupport(results, "a2_bridge", supportTerm);
+        // Required PoE for A2 bridge
+        if (!hasSku(results, "A02F9AA")) addLine(results, "A02F9AA", "PoE power injector for G62 or A2 Audio bridge");
       }
 
       // Camera add-ons (TAA) for X52 / X72 / G62
@@ -626,6 +640,8 @@ async function init() {
             addLine(results, "B22X2AA#AC3", "Poly Studio A2 Audio Bridge");
           }
           addSupport(results, "a2_bridge", supportTerm);
+          // Required PoE for A2 bridge
+          if (!hasSku(results, "A02F9AA")) addLine(results, "A02F9AA", "PoE power injector for G62 or A2 Audio bridge");
         }
       }
 
