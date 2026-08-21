@@ -1,6 +1,6 @@
-const VERSION = "v10.24";
-// script.js – HP | Poly Configurator – v10.24: camera help text → E70 recommended on X52 only
-// Features: Expandable support comparison, A2 bridge PoE, Announcement, A2 qty, E60/E70 mounts + PoE, TAA
+const VERSION = "v10.25";
+// script.js – HP | Poly Configurator – v10.25: V72 5yr Poly+ support (UF4W0PV)
+// Features: V72 poly5, Expandable support comparison, A2 bridge PoE, Announcement, A2 qty, E60/E70 mounts
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -52,7 +52,7 @@ async function init() {
     a2_bridge:  { poly1: "UJ9C3PV",   poly3: "UJ9C4PV",   poly5: null,     analyze1: null,     analyze3: null,     analyze5: null },
     v12:        { poly1: "UE1X6PV",   poly3: "UE1X7PV",   poly5: "UJ9J6PV", analyze1: "UR8C8PV", analyze3: "UR8C9PV", analyze5: "UR8D1PV" },
     v52:        { poly1: "U86MNPV",   poly3: "U86MQPV",   poly5: null,     analyze1: "UR8E0PV", analyze3: "UR8E1PV", analyze5: "UR8E3PV" },
-    v72:        { poly1: "U98X0PV",   poly3: "U98X1PV",   poly5: null,     analyze1: "UR8F2PV", analyze3: "UR8F3PV", analyze5: "UR8F5PV" },
+    v72:        { poly1: "U98X0PV",   poly3: "U98X1PV",   poly5: "UF4W0PV", analyze1: "UR8F2PV", analyze3: "UR8F3PV", analyze5: "UR8F5PV" },
     x32:        { poly1: "UE1Q8PV",   poly3: "UE1Q9PV",   poly5: null,     analyze1: "UR4R6PV", analyze3: "UR4R7PV", analyze5: "UR4R9PV" },
     x52:        { poly1: "P87620112", poly3: "P87620312", poly5: "UL5R7PV", analyze1: "UR4V4PV", analyze3: "UR4V5PV", analyze5: "UR4V7PV" },
     x72:        { poly1: "U99P8PV",   poly3: "U99P9PV",   poly5: "UL5V2PV", analyze1: "UR5C3PV", analyze3: "UR5C4PV", analyze5: "UR5C6PV" }
