@@ -95,26 +95,16 @@
       background: #52525b !important;
     }
 
-    /* Announcement & Featured cards — geometric frames, monochrome */
-    #announcementBox {
-      background: #f4f4f5 !important;
-      border: 2px solid #71717a !important;
-      border-left-width: 6px !important;
-      border-radius: 2px !important;
-    }
-    #announcementBox .text-amber-900,
-    #announcementBox .text-amber-800,
-    #announcementBox .text-amber-700 {
-      color: var(--mono-ink) !important;
-    }
+    /* Featured configuration card — geometric frame, monochrome */
     #promoBox {
       background: #f4f4f5 !important;
       border: 2px solid var(--mono-border) !important;
       border-left-width: 6px !important;
       border-radius: 2px !important;
     }
-    #promoBox .text-emerald-900,
-    #promoBox .text-emerald-800 {
+    #promoBox .text-zinc-900,
+    #promoBox .text-zinc-800,
+    #promoBox .text-zinc-700 {
       color: var(--mono-ink) !important;
     }
 
@@ -169,10 +159,9 @@
     .text-gray-600, .text-gray-700, .text-gray-800 { color: var(--mono-muted) !important; }
     .text-amber-900, .text-amber-800, .text-amber-700 { color: var(--mono-ink) !important; }
     .text-emerald-900, .text-emerald-800 { color: var(--mono-ink) !important; }
-    .bg-amber-50 { background: #f4f4f5 !important; }
-    .bg-emerald-50 { background: #f4f4f5 !important; }
-    .bg-blue-50 { background: #f4f4f5 !important; }
-    .border-amber-400, .border-emerald-400, .border-blue-300, .border-blue-400 {
+    .text-zinc-900, .text-zinc-800, .text-zinc-700 { color: var(--mono-ink) !important; }
+    .bg-amber-50, .bg-emerald-50, .bg-blue-50, .bg-zinc-50 { background: #f4f4f5 !important; }
+    .border-amber-400, .border-emerald-400, .border-blue-300, .border-blue-400, .border-zinc-500 {
       border-color: #71717a !important;
     }
 
@@ -194,7 +183,7 @@
   <script>
   (function(){
     var s=document.createElement('script');
-    s.src='script.js?v=1015&ts='+Date.now();
+    s.src='script.js?v=1016&ts='+Date.now();
     s.defer=true;
     document.currentScript.parentNode.insertBefore(s, document.currentScript);
   })();
