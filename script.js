@@ -1,6 +1,6 @@
 
-const VERSION = "v10.05";
-// script.js – HP | Poly Configurator – v10.05 (A2 qty dropdown w/ admin max; scheduling panel color+mount options)
+const VERSION = "v10.06";
+// script.js – HP | Poly Configurator – v10.06 (BOM total only on last row; no per-line totals)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -1063,7 +1063,7 @@ async function init() {
       ? `<tr class='bg-amber-50 text-amber-900'>
            <td class='border px-4 py-2 align-top italic'>NOTE</td>
            <td class='border px-4 py-2 align-top' colspan='2'>HP Poly does not currently offer a Google Meets imaged PC, but you can use the Poly USB bars along with your own BYOD PC running the regular Meets app, or consider using a Poly Studio X which has the native Google Meets app.</td>
-           ${includePrices ? `<td class='border px-4 py-2 align-top'>—</td><td class='border px-4 py-2 align-top'>—</td>` : ``}
+           ${includePrices ? `<td class='border px-4 py-2 align-top'>—</td>` : ``}
          </tr>`
       : "";
 
@@ -1080,8 +1080,7 @@ async function init() {
       <th class="border px-4 py-2 text-left">Qty</th>
       <th class="border px-4 py-2 text-left">SKU</th>
       <th class="border px-4 py-2 text-left">Description</th>
-      ${includePrices?`<th class="border px-4 py-2 text-left">Unit MSRP</th>`:""}
-      ${includePrices?`<th class="border px-4 py-2 text-left">Line Total</th>`:""}
+      ${includePrices?`<th class="border px-4 py-2 text-left">MSRP</th>`:""}
     </tr>
   </thead>
   <tbody>
@@ -1110,14 +1109,12 @@ async function init() {
         <td class="border px-4 py-2 align-top">${sku}</td>
         <td class="border px-4 py-2 align-top">${r.description}</td>
         ${includePrices?`<td class="border px-4 py-2 align-top">${fmtCurrency(r.msrp)}</td>`:""}
-        ${includePrices?`<td class="border px-4 py-2 align-top">${lineTotal != null ? fmtCurrency(lineTotal) : "—"}</td>`:""}
       </tr>`;
     });
 
     if (includePrices) {
       html += `<tr class="bg-blue-50 font-semibold">
         <td class="border px-4 py-2" colspan="3">Estimated MSRP Total</td>
-        <td class="border px-4 py-2">—</td>
         <td class="border px-4 py-2">${fmtCurrency(grandTotal)}</td>
       </tr>`;
     }
