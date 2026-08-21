@@ -6,7 +6,163 @@
   <title>Poly Video Conferencing "Bill" of Materials Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; }
+    /* Universal system font stack — kept for broad compatibility */
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: #f7f0e4; /* warm ivory / parchment */
+      color: #1c1917;      /* near-black for soft contrast */
+      line-height: 1.55;
+    }
+
+    /* Art Deco inspired theme — geometric, elegant, easier on the eyes */
+    :root {
+      --ad-gold: #b8860b;
+      --ad-gold-light: #d4a84b;
+      --ad-ink: #1c1917;
+      --ad-cream: #f7f0e4;
+      --ad-panel: #fffbf5;
+      --ad-border: #c9a227;
+      --ad-muted: #57534e;
+    }
+
+    /* Page container subtle geometric frame */
+    .max-w-5xl {
+      background: var(--ad-panel);
+      border: 2px solid var(--ad-border);
+      box-shadow:
+        0 0 0 4px var(--ad-cream),
+        0 0 0 6px var(--ad-border),
+        0 12px 28px rgba(28, 25, 23, 0.08);
+      border-radius: 2px;
+      padding: 1.75rem 1.5rem !important;
+    }
+
+    /* Title — strong geometric presence */
+    h1 {
+      letter-spacing: 0.04em;
+      border-bottom: 3px double var(--ad-gold);
+      padding-bottom: 0.6rem;
+      margin-bottom: 1.4rem !important;
+      color: var(--ad-ink);
+      font-weight: 800;
+    }
+
+    /* Form controls — cleaner, higher contrast, softer edges for eyes */
+    select, input[type="text"], input[type="number"], input:not([type="checkbox"]) {
+      background: #fffef9 !important;
+      border: 1.5px solid #d6c9a8 !important;
+      border-radius: 2px !important;
+      color: var(--ad-ink);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--ad-gold) !important;
+      box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
+    }
+
+    /* Labels */
+    label, .font-medium, .font-semibold {
+      color: var(--ad-ink);
+      letter-spacing: 0.01em;
+    }
+
+    /* Buttons — rectangular Art Deco feel */
+    button {
+      border-radius: 2px !important;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: translateY(1px); }
+
+    /* Primary action (Generate) */
+    #generateBtn, button.bg-blue-600 {
+      background: #1c1917 !important;
+      border: 2px solid var(--ad-gold) !important;
+      color: #f7f0e4 !important;
+    }
+    #generateBtn:hover, button.bg-blue-600:hover {
+      background: #292524 !important;
+    }
+
+    /* Featured / Apply button — gold accent */
+    #applyPromoBtn, button.bg-emerald-600 {
+      background: var(--ad-gold) !important;
+      border: 2px solid #8b6914 !important;
+      color: #1c1917 !important;
+    }
+    #applyPromoBtn:hover, button.bg-emerald-600:hover {
+      background: var(--ad-gold-light) !important;
+    }
+
+    /* Announcement & Featured cards — geometric frames */
+    #announcementBox {
+      background: #fff8e7 !important;
+      border: 2px solid var(--ad-gold) !important;
+      border-left-width: 6px !important;
+      border-radius: 2px !important;
+    }
+    #promoBox {
+      background: #f0faf4 !important;
+      border: 2px solid #2f855a !important;
+      border-left-width: 6px !important;
+      border-radius: 2px !important;
+    }
+
+    /* TAA box */
+    .border-blue-300 {
+      border-color: #64748b !important;
+      background: #f8fafc !important;
+      border-radius: 2px !important;
+    }
+
+    /* Result table — clean Art Deco table */
+    #result table {
+      border: 2px solid var(--ad-border);
+      border-collapse: collapse;
+      background: #fffef9;
+    }
+    #result th {
+      background: #1c1917;
+      color: #f7f0e4;
+      border: 1px solid var(--ad-gold);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    #result td {
+      border: 1px solid #d6c9a8;
+      color: var(--ad-ink);
+    }
+    #result tr:nth-child(even) td {
+      background: #faf6eb;
+    }
+    #result .bg-blue-50 {
+      background: #1c1917 !important;
+      color: #f7f0e4 !important;
+    }
+
+    /* Details / expandable sections */
+    details {
+      border: 1.5px solid #d6c9a8 !important;
+      border-radius: 2px !important;
+      background: #fffef9 !important;
+    }
+    details summary {
+      letter-spacing: 0.02em;
+    }
+
+    /* Soften pure white / pure black for eye comfort */
+    .bg-white { background-color: var(--ad-panel) !important; }
+    .text-gray-900 { color: var(--ad-ink) !important; }
+    .text-gray-600, .text-gray-700, .text-gray-800 { color: var(--ad-muted) !important; }
+
+    /* Links */
+    a { color: #8b6914; }
+    a:hover { color: var(--ad-gold); }
+
+    /* Loading state */
+    #app { min-height: 4rem; }
   </style>
 </head>
 <body class="bg-white text-gray-900">
@@ -19,7 +175,7 @@
   <script>
   (function(){
     var s=document.createElement('script');
-    s.src='script.js?v=1010&ts='+Date.now();
+    s.src='script.js?v=1011&ts='+Date.now();
     s.defer=true;
     document.currentScript.parentNode.insertBefore(s, document.currentScript);
   })();
