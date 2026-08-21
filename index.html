@@ -9,30 +9,29 @@
     /* Universal system font stack — kept for broad compatibility */
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: #f7f0e4; /* warm ivory / parchment */
-      color: #1c1917;      /* near-black for soft contrast */
+      background: #f4f4f5; /* soft light gray */
+      color: #18181b;      /* near-black */
       line-height: 1.55;
     }
 
-    /* Art Deco inspired theme — geometric, elegant, easier on the eyes */
+    /* Monochrome geometric theme — clean, high-contrast, easier on the eyes */
     :root {
-      --ad-gold: #b8860b;
-      --ad-gold-light: #d4a84b;
-      --ad-ink: #1c1917;
-      --ad-cream: #f7f0e4;
-      --ad-panel: #fffbf5;
-      --ad-border: #c9a227;
-      --ad-muted: #57534e;
+      --mono-ink: #18181b;
+      --mono-panel: #fafafa;
+      --mono-border: #3f3f46;
+      --mono-muted: #52525b;
+      --mono-light: #e4e4e7;
+      --mono-white: #ffffff;
     }
 
     /* Page container subtle geometric frame */
     .max-w-5xl {
-      background: var(--ad-panel);
-      border: 2px solid var(--ad-border);
+      background: var(--mono-panel);
+      border: 2px solid var(--mono-border);
       box-shadow:
-        0 0 0 4px var(--ad-cream),
-        0 0 0 6px var(--ad-border),
-        0 12px 28px rgba(28, 25, 23, 0.08);
+        0 0 0 4px var(--mono-light),
+        0 0 0 6px var(--mono-border),
+        0 12px 28px rgba(24, 24, 27, 0.08);
       border-radius: 2px;
       padding: 1.75rem 1.5rem !important;
     }
@@ -40,34 +39,34 @@
     /* Title — strong geometric presence */
     h1 {
       letter-spacing: 0.04em;
-      border-bottom: 3px double var(--ad-gold);
+      border-bottom: 3px double var(--mono-border);
       padding-bottom: 0.6rem;
       margin-bottom: 1.4rem !important;
-      color: var(--ad-ink);
+      color: var(--mono-ink);
       font-weight: 800;
     }
 
-    /* Form controls — cleaner, higher contrast, softer edges for eyes */
+    /* Form controls */
     select, input[type="text"], input[type="number"], input:not([type="checkbox"]) {
-      background: #fffef9 !important;
-      border: 1.5px solid #d6c9a8 !important;
+      background: var(--mono-white) !important;
+      border: 1.5px solid #a1a1aa !important;
       border-radius: 2px !important;
-      color: var(--ad-ink);
+      color: var(--mono-ink);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     select:focus, input:focus {
       outline: none;
-      border-color: var(--ad-gold) !important;
-      box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
+      border-color: var(--mono-ink) !important;
+      box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12);
     }
 
     /* Labels */
     label, .font-medium, .font-semibold {
-      color: var(--ad-ink);
+      color: var(--mono-ink);
       letter-spacing: 0.01em;
     }
 
-    /* Buttons — rectangular Art Deco feel */
+    /* Buttons — rectangular geometric feel */
     button {
       border-radius: 2px !important;
       letter-spacing: 0.03em;
@@ -78,88 +77,108 @@
 
     /* Primary action (Generate) */
     #generateBtn, button.bg-blue-600 {
-      background: #1c1917 !important;
-      border: 2px solid var(--ad-gold) !important;
-      color: #f7f0e4 !important;
+      background: var(--mono-ink) !important;
+      border: 2px solid var(--mono-ink) !important;
+      color: var(--mono-white) !important;
     }
     #generateBtn:hover, button.bg-blue-600:hover {
-      background: #292524 !important;
+      background: #27272a !important;
     }
 
-    /* Featured / Apply button — gold accent */
+    /* Featured / Apply button */
     #applyPromoBtn, button.bg-emerald-600 {
-      background: var(--ad-gold) !important;
-      border: 2px solid #8b6914 !important;
-      color: #1c1917 !important;
+      background: #3f3f46 !important;
+      border: 2px solid var(--mono-ink) !important;
+      color: var(--mono-white) !important;
     }
     #applyPromoBtn:hover, button.bg-emerald-600:hover {
-      background: var(--ad-gold-light) !important;
+      background: #52525b !important;
     }
 
-    /* Announcement & Featured cards — geometric frames */
+    /* Announcement & Featured cards — geometric frames, monochrome */
     #announcementBox {
-      background: #fff8e7 !important;
-      border: 2px solid var(--ad-gold) !important;
+      background: #f4f4f5 !important;
+      border: 2px solid #71717a !important;
       border-left-width: 6px !important;
       border-radius: 2px !important;
     }
+    #announcementBox .text-amber-900,
+    #announcementBox .text-amber-800,
+    #announcementBox .text-amber-700 {
+      color: var(--mono-ink) !important;
+    }
     #promoBox {
-      background: #f0faf4 !important;
-      border: 2px solid #2f855a !important;
+      background: #f4f4f5 !important;
+      border: 2px solid var(--mono-border) !important;
       border-left-width: 6px !important;
       border-radius: 2px !important;
+    }
+    #promoBox .text-emerald-900,
+    #promoBox .text-emerald-800 {
+      color: var(--mono-ink) !important;
     }
 
     /* TAA box */
     .border-blue-300 {
-      border-color: #64748b !important;
-      background: #f8fafc !important;
+      border-color: #71717a !important;
+      background: #f4f4f5 !important;
       border-radius: 2px !important;
     }
+    .text-blue-900, .text-blue-800 {
+      color: var(--mono-ink) !important;
+    }
 
-    /* Result table — clean Art Deco table */
+    /* Result table — clean monochrome table */
     #result table {
-      border: 2px solid var(--ad-border);
+      border: 2px solid var(--mono-border);
       border-collapse: collapse;
-      background: #fffef9;
+      background: var(--mono-white);
     }
     #result th {
-      background: #1c1917;
-      color: #f7f0e4;
-      border: 1px solid var(--ad-gold);
+      background: var(--mono-ink);
+      color: var(--mono-white);
+      border: 1px solid #52525b;
       font-weight: 600;
       letter-spacing: 0.03em;
     }
     #result td {
-      border: 1px solid #d6c9a8;
-      color: var(--ad-ink);
+      border: 1px solid #d4d4d8;
+      color: var(--mono-ink);
     }
     #result tr:nth-child(even) td {
-      background: #faf6eb;
+      background: #f4f4f5;
     }
     #result .bg-blue-50 {
-      background: #1c1917 !important;
-      color: #f7f0e4 !important;
+      background: var(--mono-ink) !important;
+      color: var(--mono-white) !important;
     }
 
     /* Details / expandable sections */
     details {
-      border: 1.5px solid #d6c9a8 !important;
+      border: 1.5px solid #a1a1aa !important;
       border-radius: 2px !important;
-      background: #fffef9 !important;
+      background: var(--mono-white) !important;
     }
     details summary {
       letter-spacing: 0.02em;
     }
 
     /* Soften pure white / pure black for eye comfort */
-    .bg-white { background-color: var(--ad-panel) !important; }
-    .text-gray-900 { color: var(--ad-ink) !important; }
-    .text-gray-600, .text-gray-700, .text-gray-800 { color: var(--ad-muted) !important; }
+    .bg-white { background-color: var(--mono-panel) !important; }
+    .text-gray-900 { color: var(--mono-ink) !important; }
+    .text-gray-600, .text-gray-700, .text-gray-800 { color: var(--mono-muted) !important; }
+    .text-amber-900, .text-amber-800, .text-amber-700 { color: var(--mono-ink) !important; }
+    .text-emerald-900, .text-emerald-800 { color: var(--mono-ink) !important; }
+    .bg-amber-50 { background: #f4f4f5 !important; }
+    .bg-emerald-50 { background: #f4f4f5 !important; }
+    .bg-blue-50 { background: #f4f4f5 !important; }
+    .border-amber-400, .border-emerald-400, .border-blue-300, .border-blue-400 {
+      border-color: #71717a !important;
+    }
 
     /* Links */
-    a { color: #8b6914; }
-    a:hover { color: var(--ad-gold); }
+    a { color: #3f3f46; }
+    a:hover { color: var(--mono-ink); text-decoration: underline; }
 
     /* Loading state */
     #app { min-height: 4rem; }
@@ -175,7 +194,7 @@
   <script>
   (function(){
     var s=document.createElement('script');
-    s.src='script.js?v=1014&ts='+Date.now();
+    s.src='script.js?v=1015&ts='+Date.now();
     s.defer=true;
     document.currentScript.parentNode.insertBefore(s, document.currentScript);
   })();
