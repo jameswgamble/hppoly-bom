@@ -1,6 +1,6 @@
 
-const VERSION = "v10.04";
-// script.js – HP | Poly Configurator – v10.04 (single TAA/JITC checkbox; No Radio noted in description)
+const VERSION = "v10.05";
+// script.js – HP | Poly Configurator – v10.05 (A2 qty dropdown w/ admin max; scheduling panel color+mount options)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -111,6 +111,19 @@ async function init() {
     if (sku) addLine(arr, sku, undefined, qty);
   };
 
+  // Scheduling panel options — amendable map
+  // value → { commercialTc10, taaTc10, glassMount, label }
+  // Wall mount is included with TC10; glass mount is a separate accessory SKU.
+  const SCHEDULING_MAP = {
+    tc10_black_wall:  { commercialTc10: "875K5AA", taaTc10: "973F9AA", glassMount: null,       label: "TC10 Black scheduling panel (wall mount included)" },
+    tc10_white_wall:  { commercialTc10: "973G1AA", taaTc10: "973G1AA", glassMount: null,       label: "TC10 White scheduling panel (wall mount included)" },
+    tc10_black_glass: { commercialTc10: "875K5AA", taaTc10: "973F9AA", glassMount: "874P9AA",  label: "TC10 Black scheduling panel + glass mount" },
+    tc10_white_glass: { commercialTc10: "973G1AA", taaTc10: "973G1AA", glassMount: "874P6AA",  label: "TC10 White scheduling panel + glass mount" }
+  };
+
+  // A2 max by host family (admin guide) — used when clamping qty in generate
+  const A2_MAX = { v12: 1, x32: 2, v52: 4, x52: 4, v72: 4, x72: 4, g62: 8, default: 4 };
+
   // ---------- UI ----------
   const app = document.getElementById("app");
   app.innerHTML = "";
@@ -187,8 +200,10 @@ async function init() {
   const a2QtyWrap = document.createElement("div");
   a2QtyWrap.id = "a2QtyWrapper";
   a2QtyWrap.className = "hidden";
-  a2QtyWrap.innerHTML = `<label class="block font-medium">Number of A2 mic pods (1–8)</label>
-    <input id="a2Qty" type="number" min="1" max="8" value="1" class="border p-2 w-full">`;
+  a2QtyWrap.innerHTML = `
+    <label class="block font-medium">Number of A2 mic pods</label>
+    <select id="a2Qty" class="border p-2 w-full"></select>
+    <p id="a2QtyHint" class="text-xs text-gray-600 mt-1"></p>`;
 
   // Home location for A2 qty control (we may move this under other UI blocks when needed)
   const a2QtyHome = document.createElement("div");
@@ -253,7 +268,13 @@ async function init() {
   form.appendChild(modularWrap);
 
 
-  form.appendChild(select("schedulingPanel","Include additional TC10 to use as scheduling panel outside room?",["None","Yes"]));
+  form.appendChild(select("schedulingPanel","Scheduling panel (additional TC10 outside room)",[
+    {value:"None", label:"None"},
+    {value:"tc10_black_wall", label:"TC10 Black — wall mount (included)"},
+    {value:"tc10_white_wall", label:"TC10 White — wall mount (included)"},
+    {value:"tc10_black_glass", label:"TC10 Black — glass mount"},
+    {value:"tc10_white_glass", label:"TC10 White — glass mount"}
+  ]));
   form.appendChild(select("supportTerm","Select Support term",[
   {value:"poly1",label:"1yr - Poly+"},
   {value:"poly3",label:"3yr - Poly+"},
@@ -420,6 +441,56 @@ async function init() {
     const r = document.getElementById("roomSize").value;
     camWrap.classList.toggle("hidden", !(t==="Android appliance based solution" && r==="Very large"));
   }
+  // Max A2 table mics per host (HP Poly Studio A2 admin guide)
+  // V12: 1 | X32: 2 | X52/V52: 4 | X72/V72: 4 | G62: 8
+  function a2MaxForSelection(){
+    const t = document.getElementById("typeOfSystem")?.value || "";
+    const r = document.getElementById("roomSize")?.value || "";
+    const isUSB = (t==="BYOD USB Bar only" || t==="Windows PC based solution");
+    if (r==="Very large" || (t==="Android appliance based solution" && r==="Very large")) return 8; // G62
+    if (r==="Large") return 4; // V72 / X72
+    if (r==="Medium") return 4; // V52 / X52
+    if (r==="Small") {
+      if (isUSB) return 1; // V12
+      return 2; // X32
+    }
+    if (r==="Custom/Modular") return 8; // modular often G62-class
+    return 4;
+  }
+
+  function refreshA2QtyOptions(){
+    const sel = document.getElementById("a2Qty");
+    const hint = document.getElementById("a2QtyHint");
+    if (!sel) return;
+    const max = a2MaxForSelection();
+    const prev = parseInt(sel.value || "1", 10) || 1;
+    sel.innerHTML = "";
+    for (let n = 1; n <= 8; n++){
+      const opt = document.createElement("option");
+      opt.value = String(n);
+      opt.textContent = String(n);
+      if (n > max) {
+        opt.disabled = true;
+        opt.textContent = n + " (exceeds max for this system)";
+      }
+      sel.appendChild(opt);
+    }
+    sel.value = String(Math.min(prev, max));
+    if (hint) {
+      const t = document.getElementById("typeOfSystem")?.value || "";
+      const r = document.getElementById("roomSize")?.value || "";
+      const isUSB = (t==="BYOD USB Bar only" || t==="Windows PC based solution");
+      let host = "selected system";
+      if (r==="Small" && isUSB) host = "V12 (max 1)";
+      else if (r==="Small") host = "X32 (max 2)";
+      else if (r==="Medium") host = "X52 / V52 (max 4)";
+      else if (r==="Large") host = "X72 / V72 (max 4)";
+      else if (r==="Very large") host = "G62 (max 8)";
+      else if (r==="Custom/Modular") host = "modular / G62-class (max 8)";
+      hint.textContent = "Per HP Poly Studio A2 admin guide: " + host + ".";
+    }
+  }
+
   function updateExpansionMicUI(){
     const t = document.getElementById("typeOfSystem").value;
     const r = document.getElementById("roomSize").value;
@@ -454,6 +525,7 @@ async function init() {
 
     const showA2 = expSel.value.includes("A2 table mic pod");
     a2QtyWrap.classList.toggle("hidden", !showA2);
+    if (showA2) refreshA2QtyOptions();
   }
 
 
@@ -647,19 +719,22 @@ async function init() {
         }
       }
 
-      // Scheduling panel TC10
-      if (scheduling === "Yes") {
-        addLine(results, tc10Sku(), "Poly TC10 (TAA) as scheduling panel");
+      // Scheduling panel TC10 (TAA path)
+      if (scheduling && scheduling !== "None" && SCHEDULING_MAP[scheduling]) {
+        const sch = SCHEDULING_MAP[scheduling];
+        addLine(results, sch.taaTc10 || tc10Sku(), sch.label);
         addSupport(results, "tc10", supportTerm);
+        if (sch.glassMount) addLine(results, sch.glassMount);
       }
 
-      // Expansion / A2 mics (TAA versions)
+      // Expansion / A2 mics (TAA versions) — qty clamped per admin guide
       const wantsA2White = (expansionMic || "").includes("New White A2");
       const wantsA2Black = (expansionMic || "").includes("New Black A2");
       if (wantsA2White || wantsA2Black) {
         let qty = parseInt(document.getElementById("a2Qty")?.value || "1", 10);
         if (isNaN(qty) || qty < 1) qty = 1;
-        if (qty > 8) qty = 8;
+        const maxA2 = a2MaxForSelection();
+        if (qty > maxA2) qty = maxA2;
         const podSku = wantsA2White ? "B22X5AA" : "B22X7AA"; // TAA White / Black
         addLine(results, podSku, "(A2 mic pod TAA)", qty);
         addSupport(results, "a2_mic", supportTerm, qty);
@@ -754,7 +829,8 @@ async function init() {
         if (wantsA2White || wantsA2Black){
           let qty = parseInt(document.getElementById("a2Qty").value || "1",10);
           if (isNaN(qty) || qty<1) qty=1;
-          if (qty>8) qty=8;
+          const maxA2 = a2MaxForSelection();
+          if (qty > maxA2) qty = maxA2;
 
           const podSku = wantsA2White ? "B22X4AA#AC3" : "B22X6AA#AC3";
           addLine(results,podSku,"(A2 mic pod)",qty);
@@ -877,10 +953,12 @@ async function init() {
     // V12 needs same PoE injector as X32
     if (hasSku(results,"A9DD8AA#ABA") && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
 
-    // Scheduling panel = TC10
-    if (scheduling==="Yes"){
-      addLine(results,"875K5AA","Poly TC10 touch controller (as scheduling panel)");
+    // Scheduling panel = TC10 (+ optional glass mount)
+    if (scheduling && scheduling !== "None" && SCHEDULING_MAP[scheduling]) {
+      const sch = SCHEDULING_MAP[scheduling];
+      addLine(results, sch.commercialTc10, sch.label);
       addSupport(results, "tc10", supportTerm);
+      if (sch.glassMount) addLine(results, sch.glassMount);
     }
 
     // Expansion mic logic
@@ -893,21 +971,19 @@ async function init() {
     if (wantsA2White || wantsA2Black){
       let qty = parseInt(document.getElementById("a2Qty").value || "1",10);
       if (isNaN(qty) || qty<1) qty=1;
-      if (qty>8) qty=8;
+      const maxA2 = a2MaxForSelection();
+      if (qty > maxA2) qty = maxA2;
       const v12InBOM = hasSku(results,"A9DD8AA#ABA");
-      if (v12InBOM) qty = 1;
+      if (v12InBOM) qty = Math.min(qty, 1);
       const podSku = wantsA2White ? "B22X4AA#AC3" : "B22X6AA#AC3";
       addLine(results,podSku,"(A2 mic pod)",qty);
-      // PolyPlus support for A2 table mic pods (per mic pod)
       addSupport(results, "a2_mic", supportTerm, qty);
 
       if (!v12InBOM){
         addLine(results,"B22X2AA#AC3");
         addSupport(results, "a2_bridge", supportTerm);
       }
-      // Add required PoE for A2 bridge
       if (hasSku(results,"B22X2AA#AC3") && !hasSku(results,"A02F9AA")) addLine(results,"A02F9AA");
-      // X32/X52/V52 require dongle
       if ((hasSku(results,"A3SV5AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8L1AA#ABA") || hasSku(results,"A09D4AA#ABA")) && !hasSku(results,"4Z7Z7AA")){
         addLine(results,"4Z7Z7AA");
       }
