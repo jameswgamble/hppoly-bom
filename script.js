@@ -1,6 +1,6 @@
 
-const VERSION = "v9.96";
-// script.js – HP | Poly Configurator – v9.96 (TAA path + cache-busted catalog + SKU alias lookup)
+const VERSION = "v9.99";
+// script.js – HP | Poly Configurator – v9.99 (Poly+ Analyze docs link update)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -136,15 +136,20 @@ async function init() {
   const form = document.createElement("form");
   form.className = "space-y-4";
 
-  // TAA / JITC compliance toggle
+  // TAA / JITC + No Radio toggles
   const taaWrap = document.createElement("div");
-  taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-1";
+  taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-2";
   taaWrap.innerHTML = `
     <label class="inline-flex items-center gap-2 cursor-pointer">
       <input id="taaJitc" type="checkbox" class="w-4 h-4 border">
       <span class="font-semibold text-blue-900">TAA / JITC compliant configuration only</span>
     </label>
     <p class="text-xs text-blue-800 ml-6">When checked, only TAA/JITC-compliant SKUs are used. Standard commercial hardware is excluded. Support terms still apply.</p>
+    <label class="inline-flex items-center gap-2 cursor-pointer">
+      <input id="noRadio" type="checkbox" class="w-4 h-4 border">
+      <span class="font-semibold text-blue-900">No Radio configuration</span>
+    </label>
+    <p class="text-xs text-blue-800 ml-6">Applies to TC10, Studio X, Studio V, and G62 when No Radio SKUs exist. Selects No Radio variants for secure / restricted RF environments. Room Compute TAA units are already No Radio.</p>
   `;
   form.appendChild(taaWrap);
 
@@ -269,7 +274,7 @@ async function init() {
   supportInfo.innerHTML = `
     <strong>Poly+</strong> — Essential support: unlimited 24/7 priority technical support, next-business-day advance hardware replacement, and ecosystem cloud partner support.<br>
     <strong>Poly+ Analyze</strong> — Premium tier that includes everything in Poly+ <em>plus</em> coverage for your entire HP Poly estate, HP Poly Lens Pro for Rooms (advanced insights), and enterprise integration / IT tools.<br>
-    <a href="https://www.hp.com/us-en/services/workforce-solutions/communication-collaboration/support.html" target="_blank" rel="noopener" class="text-blue-700 underline">Learn more on HP’s support services page</a>
+    <a href="https://info.lens.poly.com/docs/premium-Poly-Lens/poly-plus-enterprise#hp-poly-analyze" target="_blank" rel="noopener" class="text-blue-700 underline">Learn more about Poly+ and Poly+ Analyze</a>
   `;
   form.appendChild(supportInfo);
 
@@ -472,6 +477,7 @@ async function init() {
     const accessories  = (document.getElementById("accessories").value || "").split(",").map(s=>s.trim()).filter(Boolean);
     const includePrices= document.getElementById("includePrices").checked;
     const taaJitc      = document.getElementById("taaJitc")?.checked || false;
+    const noRadio      = document.getElementById("noRadio")?.checked || false;
 
     if (!typeOfSystem || !platform || !roomSize){
       resultDiv.innerHTML = `<div class="text-red-700 bg-red-50 border border-red-200 p-3 rounded">Please select System type, Platform, and Room size.</div>`;
@@ -482,70 +488,100 @@ async function init() {
     const isUSBorPC = (typeOfSystem==="BYOD USB Bar only" || typeOfSystem==="Windows PC based solution");
 
     // ========== TAA / JITC MODE ==========
-    // Prefer JITC variant when available; fall back to TAA-only.
-    // Support terms map to the same Poly+ / Analyze SKUs as commercial equivalents.
+    // Prefer JITC when available. When No Radio is checked, prefer No Radio variants
+    // for TC10, Studio X, and Studio V only (G62 / cameras / A2 unchanged).
     if (taaJitc) {
-      // Helper: pick best TAA SKU (prefer JITC)
+      // opts: { radioJitc, radioTaa, noRadioJitc, noRadioTaa }
+      const pickFamily = (opts) => {
+        if (noRadio) {
+          return opts.noRadioJitc || opts.noRadioTaa || opts.radioJitc || opts.radioTaa || null;
+        }
+        return opts.radioJitc || opts.radioTaa || opts.noRadioJitc || opts.noRadioTaa || null;
+      };
+      // Simple JITC-prefer for devices without No Radio variants
       const pick = (jitcSku, taaSku) => jitcSku || taaSku;
+
+      // TC10 Black — Radio vs No Radio
+      const tc10Sku = () => pickFamily({
+        radioJitc: "973F9AA", radioTaa: "977L6AA",
+        noRadioJitc: "973G0AA", noRadioTaa: "977L7AA"
+      });
 
       if (isUSBorPC) {
         // USB / PC based → V-series bars
         if (roomSize === "Small") {
-          addLine(results, "B95SPAA"); // V12 TAA
+          addLine(results, pickFamily({
+            radioJitc: null, radioTaa: "B95SPAA",
+            noRadioJitc: null, noRadioTaa: "B95SNAA"
+          })); // V12
           addSupport(results, "v12", supportTerm);
         } else if (roomSize === "Medium") {
-          addLine(results, pick("A09D6AA", "A09D5AA")); // V52 TAA JITC / TAA
+          addLine(results, pickFamily({
+            radioJitc: "A09D6AA", radioTaa: "A09D5AA",
+            noRadioJitc: "A09D9AA", noRadioTaa: "A09D8AA"
+          })); // V52
           addSupport(results, "v52", supportTerm);
         } else {
-          addLine(results, pick("AV1E4AA", null)); // V72 TAA JITC
+          addLine(results, pickFamily({
+            radioJitc: "AV1E4AA", radioTaa: null,
+            noRadioJitc: "AV1E6AA", noRadioTaa: null
+          })); // V72
           addSupport(results, "v72", supportTerm);
         }
         if (typeOfSystem === "Windows PC based solution") {
           if (platform === "Microsoft Teams") {
-            // Prefer Studio 5/7 Room Compute TAA when available
             if (roomSize === "Small" || roomSize === "Medium") {
               addLine(results, "DS1R6AW"); // Studio 5 Room Compute TAA
             } else {
               addLine(results, "DS0W9AW"); // Studio 7 Room Compute TAA
             }
             addSupport(results, "g9plus_mtr", supportTerm);
-            addLine(results, pick("973F9AA", "977L6AA")); // TC10 Black TAA JITC / TAA
+            addLine(results, tc10Sku());
             addSupport(results, "tc10", supportTerm);
           } else {
-            // Zoom / Google – still need a TC10 for control in many setups
-            addLine(results, pick("973F9AA", "977L6AA"));
+            addLine(results, tc10Sku());
             addSupport(results, "tc10", supportTerm);
           }
         }
       } else {
         // Android appliance → X-series / G62
         if (roomSize === "Small") {
-          addLine(results, pick("A3SW0AA", "A3SV9AA")); // X32 TAA JITC / TAA
+          addLine(results, pickFamily({
+            radioJitc: "A3SW0AA", radioTaa: "A3SV9AA",
+            noRadioJitc: "A3SW2AA", noRadioTaa: "A3SW1AA"
+          })); // X32
           addSupport(results, "x32", supportTerm);
-          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else if (roomSize === "Medium") {
-          addLine(results, pick("8D8K4AA", "8D8K3AA")); // X52 AVB TAA JITC / TAA
+          // X52 — no No Radio variants in catalog; always radio TAA/JITC
+          addLine(results, pick("8D8K4AA", "8D8K3AA"));
           addSupport(results, "x52", supportTerm);
-          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else if (roomSize === "Large") {
-          addLine(results, pick("A4MA2AA", "A4MA1AA")); // X72 TAA JITC / TAA
+          addLine(results, pickFamily({
+            radioJitc: "A4MA2AA", radioTaa: "A4MA1AA",
+            noRadioJitc: "A4MA6AA", noRadioTaa: "A4MA4AA"
+          })); // X72
           addSupport(results, "x72", supportTerm);
-          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addLine(results, tc10Sku());
           addSupport(results, "tc10", supportTerm);
         } else {
-          // Very large → G62
-          addLine(results, pick("99T11AA", "99T10AA")); // G62 TAA JITC / TAA
+          // Very large → G62 (has No Radio TAA / TAA JITC variants)
+          addLine(results, pickFamily({
+            radioJitc: "99T11AA", radioTaa: "99T10AA",
+            noRadioJitc: "99T13AA", noRadioTaa: "99T12AA"
+          }));
           addSupport(results, "g62", supportTerm);
-          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addLine(results, tc10Sku()); // TC10 still respects No Radio
           addSupport(results, "tc10", supportTerm);
         }
       }
 
       // Scheduling panel TC10
       if (scheduling === "Yes") {
-        addLine(results, pick("973F9AA", "977L6AA"), "Poly TC10 (TAA) as scheduling panel");
+        addLine(results, tc10Sku(), "Poly TC10 (TAA) as scheduling panel");
         addSupport(results, "tc10", supportTerm);
       }
 
@@ -564,7 +600,7 @@ async function init() {
       }
 
       // G62 camera add-ons (TAA)
-      if (hasSku(results, "99T11AA") || hasSku(results, "99T10AA")) {
+      if (hasSku(results, "99T11AA") || hasSku(results, "99T10AA") || hasSku(results, "99T12AA") || hasSku(results, "99T13AA")) {
         const cam = document.getElementById("cameraChoice")?.value;
         if (cam === "E60") {
           addLine(results, "9W1A7AA"); // E60 TAA
@@ -579,11 +615,11 @@ async function init() {
       (function addTaaMounting() {
         if (!mounting || mounting === "None") return;
         const isV12 = hasSku(results, "B95SPAA") || hasSku(results, "B95SNAA");
-        const isV52 = hasSku(results, "A09D6AA") || hasSku(results, "A09D5AA");
+        const isV52 = hasSku(results, "A09D6AA") || hasSku(results, "A09D5AA") || hasSku(results, "A09D9AA") || hasSku(results, "A09D8AA");
         const isV72 = hasSku(results, "AV1E4AA") || hasSku(results, "AV1E6AA");
-        const isX32 = hasSku(results, "A3SW0AA") || hasSku(results, "A3SV9AA");
+        const isX32 = hasSku(results, "A3SW0AA") || hasSku(results, "A3SV9AA") || hasSku(results, "A3SW2AA") || hasSku(results, "A3SW1AA");
         const isX52 = hasSku(results, "8D8K4AA") || hasSku(results, "8D8K3AA");
-        const isX72 = hasSku(results, "A4MA2AA") || hasSku(results, "A4MA1AA");
+        const isX72 = hasSku(results, "A4MA2AA") || hasSku(results, "A4MA1AA") || hasSku(results, "A4MA6AA") || hasSku(results, "A4MA4AA");
         if (isV12 || isX32) {
           if (mounting === "Table") addLine(results, "875L5AA");
           else addLine(results, "875L6AA");
@@ -839,9 +875,9 @@ async function init() {
       // Android X-series (commercial or TAA) -> PROSTDIOXR2
       else if (
         hasSku(results,"A3SV5AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"A4LZ8AA#ABA") ||
-        hasSku(results,"A3SW0AA") || hasSku(results,"A3SV9AA") ||
+        hasSku(results,"A3SW0AA") || hasSku(results,"A3SV9AA") || hasSku(results,"A3SW2AA") || hasSku(results,"A3SW1AA") ||
         hasSku(results,"8D8K4AA") || hasSku(results,"8D8K3AA") ||
-        hasSku(results,"A4MA2AA") || hasSku(results,"A4MA1AA")
+        hasSku(results,"A4MA2AA") || hasSku(results,"A4MA1AA") || hasSku(results,"A4MA6AA") || hasSku(results,"A4MA4AA")
       ) remoteSku = "PROSTDIOXR2";
 
       if (implHelp==="Remote Implementation help" && remoteSku) addLine(results, remoteSku);
