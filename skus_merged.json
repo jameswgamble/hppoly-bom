@@ -1,1 +1,11 @@
-SEE_FILE
+{
+  "875K5AA": {"description": "Poly TC10 (black)", "msrp": 1284.0},
+  "8D8K2AA#ABA": {"description": "Poly X52 AVB United States / Canada English (must add TC10)", "msrp": 4370.0},
+  "8D8K4AA": {"description": "Poly Studio X52 AVB TAA JITC", "msrp": 5243.0},
+  "A09D4AA#ABA": {"description": "Poly Studio V52 Premium USB video/audio bar", "msrp": 3703.0},
+  "A09D6AA": {"description": "Poly Studio V52 USB Video Bar TAA JITC", "msrp": 4443.0},
+  "973F9AA": {"description": "Poly TC10 Black Touch Controller GSA/TAA JITC", "msrp": 1611.0},
+  "P37760112": {"description": "1 yr PolyPlus TC10", "msrp": 134.95},
+  "UL5R7PV": {"description": "5 Year Poly+ Studio X52", "msrp": 1197.95},
+  "UR4V7PV": {"description": "5 Year Poly+ Analyze Studio X52", "msrp": 1435.95}
+}
