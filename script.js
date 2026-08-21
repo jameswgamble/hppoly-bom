@@ -1,6 +1,6 @@
 
-const VERSION = "v9.99";
-// script.js – HP | Poly Configurator – v9.99 (Poly+ Analyze docs link update)
+const VERSION = "v10.03";
+// script.js – HP | Poly Configurator – v10.03 (No Radio works in commercial path too; uses TAA NR SKUs)
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -149,7 +149,7 @@ async function init() {
       <input id="noRadio" type="checkbox" class="w-4 h-4 border">
       <span class="font-semibold text-blue-900">No Radio configuration</span>
     </label>
-    <p class="text-xs text-blue-800 ml-6">Applies to TC10, Studio X, Studio V, and G62 when No Radio SKUs exist. Selects No Radio variants for secure / restricted RF environments. Room Compute TAA units are already No Radio.</p>
+    <p class="text-xs text-blue-800 ml-6">Applies to TC10, Studio X, Studio V, and G62 in both commercial and TAA modes. Public No Radio part numbers are TAA/GSA SKUs (no separate non-TAA No Radio SKUs published). Room Compute TAA units are already No Radio.</p>
   `;
   form.appendChild(taaWrap);
 
@@ -277,6 +277,114 @@ async function init() {
     <a href="https://info.lens.poly.com/docs/premium-Poly-Lens/poly-plus-enterprise#hp-poly-analyze" target="_blank" rel="noopener" class="text-blue-700 underline">Learn more about Poly+ and Poly+ Analyze</a>
   `;
   form.appendChild(supportInfo);
+
+  // Expandable Poly+ vs Poly+ Analyze comparison (Lens Premium features map to Analyze)
+  const featuresDetails = document.createElement("details");
+  featuresDetails.className = "text-xs mt-2 border border-blue-200 rounded bg-white";
+  featuresDetails.innerHTML = `
+    <summary class="cursor-pointer select-none px-3 py-2 font-medium text-blue-900 hover:bg-blue-50 rounded">
+      Poly+ vs Poly+ Analyze feature comparison — click to expand
+    </summary>
+    <div class="px-3 pb-3 overflow-x-auto">
+      <p class="text-gray-600 mb-2">
+        Poly+ Analyze includes everything in Poly+ plus Poly Lens Pro for Rooms / Premium analytics.
+        <a href="https://info.lens.poly.com/docs/premium-Poly-Lens/poly-plus-features" target="_blank" rel="noopener" class="text-blue-700 underline">Source</a>
+        ·
+        <a href="https://info.lens.poly.com/docs/premium-Poly-Lens/poly-plus-enterprise#hp-poly-analyze" target="_blank" rel="noopener" class="text-blue-700 underline">Poly+ Analyze overview</a>
+      </p>
+      <table class="w-full border-collapse text-left">
+        <thead>
+          <tr class="bg-blue-50">
+            <th class="border border-blue-100 px-2 py-1">Feature</th>
+            <th class="border border-blue-100 px-2 py-1">Description</th>
+            <th class="border border-blue-100 px-2 py-1 text-center whitespace-nowrap">Poly+</th>
+            <th class="border border-blue-100 px-2 py-1 text-center whitespace-nowrap">Poly+ Analyze</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">24/7 priority technical support</td>
+            <td class="border border-blue-100 px-2 py-1">Unlimited global support via phone, chat, web, and video.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">Advance hardware replacement</td>
+            <td class="border border-blue-100 px-2 py-1">Next-business-day replacement before returning the failed unit.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Ecosystem cloud partner support</td>
+            <td class="border border-blue-100 px-2 py-1">Faster resolution with Teams, Zoom, and other cloud partners.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">Coverage for entire HP Poly estate</td>
+            <td class="border border-blue-100 px-2 py-1">Unified entitlement across your Poly inventory (not device-by-device only).</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Office 365 Calendar</td>
+            <td class="border border-blue-100 px-2 py-1">Integrate Microsoft 365 calendars with Poly Lens for room schedule insights and utilization.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">Room Analytics</td>
+            <td class="border border-blue-100 px-2 py-1">Customizable reports on room utilization and meeting behavior trends.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Room Insights Dashboard</td>
+            <td class="border border-blue-100 px-2 py-1">Interactive dashboard for trends, utilization, and KPIs across your Poly estate.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">Room Insights Feed</td>
+            <td class="border border-blue-100 px-2 py-1">Curated feed of significant room utilization and meeting metrics.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Remote Access (TC8 / TC10)</td>
+            <td class="border border-blue-100 px-2 py-1">Remotely access and control touch controllers from Poly Lens.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">Visual Analytics with Power BI</td>
+            <td class="border border-blue-100 px-2 py-1">Visualize Poly inventory and combine with other UC datasets in Power BI.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Zoom Device Management</td>
+            <td class="border border-blue-100 px-2 py-1">Monitor Zoom device/room health and manage Poly devices in Poly Lens.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-blue-100 px-2 py-1 font-medium">API Access to Premium Features</td>
+            <td class="border border-blue-100 px-2 py-1">Poly Lens Premium APIs (requires Premium entitlement). Core APIs remain free.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+          <tr>
+            <td class="border border-blue-100 px-2 py-1 font-medium">Enterprise integration &amp; IT tools</td>
+            <td class="border border-blue-100 px-2 py-1">Broader estate tooling and integration for IT success.</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">—</td>
+            <td class="border border-blue-100 px-2 py-1 text-center">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  form.appendChild(featuresDetails);
 
   form.appendChild(select("implementationHelp","Implementation Help",["None","Remote Implementation help","Onsite Implementation help"]));
   form.appendChild(input("accessories","Optional: any additional accessories (comma-separated SKUs)","e.g. 3rd party powered speakers, existing audio, 3rd party DSP, extra cameras, cables"));
@@ -720,15 +828,27 @@ async function init() {
 
     } else if (!taaJitc) {
 
+    // No Radio commercial path: public No Radio SKUs are TAA/GSA part numbers.
+    // When No Radio is checked, use those (only available form) and note it on the BOM.
+    const commercialTc10 = () => noRadio ? "977L7AA" : "875K5AA"; // No Radio TAA vs standard TC10
+    if (noRadio) {
+      results.push({
+        sku: "",
+        description: "Note: No Radio units use TAA/GSA part numbers (no separate commercial No Radio SKUs published).",
+        msrp: "",
+        quantity: 1
+      });
+    }
+
     if (isUSBorPC){
       if (roomSize==="Small"){
-        addLine(results,"A9DD8AA#ABA"); // V12
+        addLine(results, noRadio ? "B95SNAA" : "A9DD8AA#ABA"); // V12
         addSupport(results, "v12", supportTerm);
       } else if (roomSize==="Medium"){
-        addLine(results,"A09D4AA#ABA"); // V52
+        addLine(results, noRadio ? "A09D8AA" : "A09D4AA#ABA"); // V52
         addSupport(results, "v52", supportTerm);
       } else { // Large or Very large -> V72
-        addLine(results,"AV1E3AA#ABA");
+        addLine(results, noRadio ? "AV1E6AA" : "AV1E3AA#ABA");
         addSupport(results, "v72", supportTerm);
       }
 
@@ -736,15 +856,12 @@ async function init() {
         if (platform==="Zoom"){
           addLine(results,"9C422AW#ABA","HP Mini Conf G9 wZR i7-12700T 16GB Zoom Room PC only (must add TC10, Camera, Audio)");
           addSupport(results, "zoom_pc", supportTerm);
-          // Zoom PC requires TC10
-          addLine(results,"875K5AA"); // TC10
+          addLine(results, commercialTc10());
           addSupport(results, "tc10", supportTerm);
         } else if (platform==="Microsoft Teams"){
-          // Unbundled: G9Plus MTR PC + TC10 (separate SKUs)
           addLine(results,"A1ZB6AW#ABA"); // G9Plus MTR PC only
           addSupport(results, "g9plus_mtr", supportTerm);
-          // Always add TC10 touch controller + PolyPlus
-          addLine(results,"875K5AA");
+          addLine(results, commercialTc10());
           addSupport(results, "tc10", supportTerm);
         } else if (platform==="Google Meet"){
           addLine(results,"9C422AW#ABA");
@@ -754,23 +871,22 @@ async function init() {
     } else {
       // Android
       if (roomSize==="Small"){
-        addLine(results,"A3SV5AA#ABA"); // X32
+        addLine(results, noRadio ? "A3SW1AA" : "A3SV5AA#ABA"); // X32
         addSupport(results, "x32", supportTerm);
       } else if (roomSize==="Medium"){
-        addLine(results,"8D8K2AA#ABA"); // X52 (bar only, no TC10 bundle)
+        // X52: no commercial No Radio; use TAA No Radio bar if requested (8D8K3AA is radio TAA; no 8D8K8 in catalog)
+        addLine(results, noRadio ? "8D8K3AA" : "8D8K2AA#ABA"); // fallback radio TAA if no dedicated NR SKU in catalog
         addSupport(results, "x52", supportTerm);
-        // Always add TC10 + PolyPlus for control
-        addLine(results,"875K5AA");
+        addLine(results, commercialTc10());
         addSupport(results, "tc10", supportTerm);
       } else if (roomSize==="Large"){
-        addLine(results,"A4LZ8AA#ABA"); // X72 bar only (unbundled, no TC10)
+        addLine(results, noRadio ? "A4MA4AA" : "A4LZ8AA#ABA"); // X72
         addSupport(results, "x72", supportTerm);
-        // Always add TC10 + PolyPlus for control
-        addLine(results,"875K5AA");
+        addLine(results, commercialTc10());
         addSupport(results, "tc10", supportTerm);
       } else {
-        // Very large -> force G62
-        addLine(results,"A01KCAA#AC3"); // G62
+        // Very large -> G62
+        addLine(results, noRadio ? "99T12AA" : "A01KCAA#AC3");
         addSupport(results, "g62", supportTerm);
       }
     }
@@ -782,43 +898,48 @@ async function init() {
     // Guard: Android Very Large must be G62 (remove X72 if present)
     if (typeOfSystem==="Android appliance based solution" && roomSize==="Very large"){
       for (let i=results.length-1;i>=0;i--){
-        if (["A4MA7AA#ABA","U98SXPV","U98SYPV"].includes(results[i].sku)) results.splice(i,1);
+        if (["A4MA7AA#ABA","U98SXPV","U98SYPV","A4MA4AA","A4LZ8AA#ABA"].includes(results[i].sku)) results.splice(i,1);
       }
-      if (!hasSku(results,"A01KCAA#AC3")) addLine(results,"A01KCAA#AC3");
+      const g62Sku = noRadio ? "99T12AA" : "A01KCAA#AC3";
+      if (!hasSku(results,"A01KCAA#AC3") && !hasSku(results,"99T12AA") && !hasSku(results,"99T13AA") && !hasSku(results,"99T10AA") && !hasSku(results,"99T11AA")) {
+        addLine(results, g62Sku);
+      }
     }
 
     // G62 camera add-ons
     (function(){
-      const isG62 = hasSku(results,"A01KCAA#AC3");
+      const isG62 = hasSku(results,"A01KCAA#AC3") || hasSku(results,"99T12AA") || hasSku(results,"99T13AA") || hasSku(results,"99T10AA") || hasSku(results,"99T11AA");
       if (!isG62) return;
       const cam = document.getElementById("cameraChoice").value;
       if (cam==="E60"){
-        if (!hasSku(results,"9W1A6AA#AC3")) addLine(results,"9W1A6AA#AC3");
+        if (!hasSku(results,"9W1A6AA#AC3") && !hasSku(results,"9W1A7AA")) addLine(results, noRadio ? "9W1A7AA" : "9W1A6AA#AC3");
         addSupport(results, "e60", supportTerm);
       } else if (cam==="E70"){
-        if (!hasSku(results,"842F8AA")) addLine(results,"842F8AA");
+        if (!hasSku(results,"842F8AA") && !hasSku(results,"886C8AA") && !hasSku(results,"886C9AA")) addLine(results, noRadio ? "886C8AA" : "842F8AA");
         addSupport(results, "e70", supportTerm);
       }
       // G62 requires TC10
-      if (!hasSku(results,"875K5AA")){
-        addLine(results,"875K5AA");
+      const hasTc10 = hasSku(results,"875K5AA") || hasSku(results,"977L7AA") || hasSku(results,"973G0AA") || hasSku(results,"977L6AA") || hasSku(results,"973F9AA");
+      if (!hasTc10){
+        addLine(results, noRadio ? "977L7AA" : "875K5AA");
         addSupport(results, "tc10", supportTerm);
       }
     })();
 
     // X32 extras: PoE + TC10 (+ PolyPlus)
-    if (hasSku(results,"A3SV5AA#ABA")){
+    if (hasSku(results,"A3SV5AA#ABA") || hasSku(results,"A3SW1AA") || hasSku(results,"A3SW2AA") || hasSku(results,"A3SV9AA") || hasSku(results,"A3SW0AA")){
       if (!hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
-      if (!hasSku(results,"875K5AA")) addLine(results,"875K5AA");
+      const hasTc10 = hasSku(results,"875K5AA") || hasSku(results,"977L7AA") || hasSku(results,"973G0AA") || hasSku(results,"977L6AA") || hasSku(results,"973F9AA");
+      if (!hasTc10) addLine(results, noRadio ? "977L7AA" : "875K5AA");
       addSupport(results, "tc10", supportTerm);
     }
 
     // V12 needs same PoE injector as X32
-    if (hasSku(results,"A9DD8AA#ABA") && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
+    if ((hasSku(results,"A9DD8AA#ABA") || hasSku(results,"B95SNAA") || hasSku(results,"B95SPAA")) && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
 
     // Scheduling panel = TC10
     if (scheduling==="Yes"){
-      addLine(results,"875K5AA","Poly TC10 touch controller (as scheduling panel)");
+      addLine(results, noRadio ? "977L7AA" : "875K5AA", "Poly TC10 touch controller (as scheduling panel)");
       addSupport(results, "tc10", supportTerm);
     }
 
@@ -890,12 +1011,12 @@ async function init() {
     (function addMounting(){
       if (!mounting || mounting==="None") return;
 
-      const isV12 = hasSku(results,"A9DD8AA#ABA");
-      const isV52 = hasSku(results,"A09D4AA#ABA");
-      const isV72 = hasSku(results,"AV1E3AA#ABA");
-      const isX32 = hasSku(results,"A3SV5AA#ABA");
-      const isX52 = hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8L1AA#ABA");
-      const isX72 = hasSku(results,"A4LZ8AA#ABA") || hasSku(results,"A4MA7AA#ABA");
+      const isV12 = hasSku(results,"A9DD8AA#ABA") || hasSku(results,"B95SNAA") || hasSku(results,"B95SPAA");
+      const isV52 = hasSku(results,"A09D4AA#ABA") || hasSku(results,"A09D8AA") || hasSku(results,"A09D5AA") || hasSku(results,"A09D6AA") || hasSku(results,"A09D9AA");
+      const isV72 = hasSku(results,"AV1E3AA#ABA") || hasSku(results,"AV1E6AA") || hasSku(results,"AV1E4AA");
+      const isX32 = hasSku(results,"A3SV5AA#ABA") || hasSku(results,"A3SW1AA") || hasSku(results,"A3SW2AA") || hasSku(results,"A3SV9AA") || hasSku(results,"A3SW0AA");
+      const isX52 = hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8L1AA#ABA") || hasSku(results,"8D8K3AA") || hasSku(results,"8D8K4AA");
+      const isX72 = hasSku(results,"A4LZ8AA#ABA") || hasSku(results,"A4MA7AA#ABA") || hasSku(results,"A4MA4AA") || hasSku(results,"A4MA1AA") || hasSku(results,"A4MA2AA") || hasSku(results,"A4MA6AA");
 
       // V12 / X32
       if (isV12 || isX32){
@@ -926,7 +1047,7 @@ async function init() {
       ? `<tr class='bg-amber-50 text-amber-900'>
            <td class='border px-4 py-2 align-top italic'>NOTE</td>
            <td class='border px-4 py-2 align-top' colspan='2'>HP Poly does not currently offer a Google Meets imaged PC, but you can use the Poly USB bars along with your own BYOD PC running the regular Meets app, or consider using a Poly Studio X which has the native Google Meets app.</td>
-           ${includePrices ? `<td class='border px-4 py-2 align-top'>—</td>` : ``}
+           ${includePrices ? `<td class='border px-4 py-2 align-top'>—</td><td class='border px-4 py-2 align-top'>—</td>` : ``}
          </tr>`
       : "";
 
@@ -943,25 +1064,57 @@ async function init() {
       <th class="border px-4 py-2 text-left">Qty</th>
       <th class="border px-4 py-2 text-left">SKU</th>
       <th class="border px-4 py-2 text-left">Description</th>
-      ${includePrices?`<th class="border px-4 py-2 text-left">MSRP</th>`:""}
+      ${includePrices?`<th class="border px-4 py-2 text-left">Unit MSRP</th>`:""}
+      ${includePrices?`<th class="border px-4 py-2 text-left">Line Total</th>`:""}
     </tr>
   </thead>
   <tbody>
     ${noteRow}
 `;
 
+    let grandTotal = 0;
+    let pricedLines = 0;
+    let unpricedLines = 0;
+
     results.forEach(r=>{
       // hide the synthetic NOTE row SKU
-      const sku = r.sku.startsWith("NOTE-") ? "—" : (r.sku ? r.sku : "—");
+      const sku = (r.sku && String(r.sku).startsWith("NOTE-")) ? "—" : (r.sku ? r.sku : "—");
+      const qty = Number(r.quantity) || 0;
+      const unit = (typeof r.msrp === "number") ? r.msrp : null;
+      const lineTotal = (unit != null) ? unit * qty : null;
+      if (lineTotal != null) {
+        grandTotal += lineTotal;
+        pricedLines += 1;
+      } else if (r.sku && !String(r.sku).startsWith("NOTE-")) {
+        unpricedLines += 1;
+      }
+
       html += `<tr>
         <td class="border px-4 py-2 align-top">${r.quantity}</td>
         <td class="border px-4 py-2 align-top">${sku}</td>
         <td class="border px-4 py-2 align-top">${r.description}</td>
         ${includePrices?`<td class="border px-4 py-2 align-top">${fmtCurrency(r.msrp)}</td>`:""}
+        ${includePrices?`<td class="border px-4 py-2 align-top">${lineTotal != null ? fmtCurrency(lineTotal) : "—"}</td>`:""}
       </tr>`;
     });
 
+    if (includePrices) {
+      html += `<tr class="bg-blue-50 font-semibold">
+        <td class="border px-4 py-2" colspan="3">Estimated MSRP Total</td>
+        <td class="border px-4 py-2">—</td>
+        <td class="border px-4 py-2">${fmtCurrency(grandTotal)}</td>
+      </tr>`;
+    }
+
     html += `</tbody></table>`;
+
+    if (includePrices) {
+      html += `<p class="text-xs text-gray-600 mt-2">Total is Qty × unit MSRP for lines with a known price (${pricedLines} priced line${pricedLines===1?"":"s"}).`;
+      if (unpricedLines > 0) {
+        html += ` ${unpricedLines} line${unpricedLines===1?"":"s"} have no MSRP in the catalog and are excluded from the total.`;
+      }
+      html += ` Prices are list MSRP and may not reflect final quote.</p>`;
+    }
 
     // Conversational Show Mic Options (with analog hidden for Very large)
     function micList(items){
