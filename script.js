@@ -1,6 +1,6 @@
-const VERSION = "v10.20";
-// script.js – HP | Poly Configurator – v10.20: E60/E70 mount options + PoE+ injector for both
-// Features: Camera mount (VESA E70 / Ceiling E60), power option (wall/injector) for E60+E70, TAA path, promo, MSRP
+const VERSION = "v10.21";
+// script.js – HP | Poly Configurator – v10.21: restored A2 mic quantity selector + logic for both commercial & TAA
+// Features: A2 qty (with host max), E60/E70 mounts + PoE injector, TAA path, promo, MSRP
 
 document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
 
@@ -142,6 +142,16 @@ async function init() {
     "New Black A2 table mic pod(s)"
   ]));
 
+  // A2 quantity (shown only when New White/Black A2 is selected)
+  const a2QtyWrap = document.createElement("div");
+  a2QtyWrap.id = "a2QtyWrap";
+  a2QtyWrap.className = "hidden";
+  a2QtyWrap.innerHTML = `
+    <label class="block font-medium">Number of A2 mic pods</label>
+    <select id="a2Qty" class="border p-2 w-full"></select>
+    <p id="a2QtyHint" class="text-xs text-gray-600 mt-1"></p>`;
+  form.appendChild(a2QtyWrap);
+
   // Camera add-on (shown for Android Medium / Large / Very large)
   const camWrap = document.createElement("div");
   camWrap.id = "cameraWrap";
@@ -228,6 +238,57 @@ async function init() {
   app.appendChild(legalFooter);
 
   // ---------- dynamic UI helpers ----------
+  // Max A2 table mics per host (HP Poly Studio A2 admin guide)
+  // V12: 1 | X32: 2 | X52/V52: 4 | X72/V72: 4 | G62: 8
+  function a2MaxForSelection() {
+    const t = document.getElementById("typeOfSystem")?.value || "";
+    const r = document.getElementById("roomSize")?.value || "";
+    const isUSB = (t === "BYOD USB Bar only" || t === "Windows PC based solution");
+    if (r === "Very large") return 8; // G62
+    if (r === "Large") return 4;      // X72 / V72
+    if (r === "Medium") return 4;     // X52 / V52
+    if (r === "Small") {
+      if (isUSB) return 1;            // V12
+      return 2;                       // X32
+    }
+    return 4;
+  }
+  function refreshA2QtyOptions() {
+    const sel = document.getElementById("a2Qty");
+    const hint = document.getElementById("a2QtyHint");
+    if (!sel) return;
+    const max = a2MaxForSelection();
+    const prev = parseInt(sel.value || "1", 10) || 1;
+    sel.innerHTML = "";
+    for (let n = 1; n <= 8; n++) {
+      const opt = document.createElement("option");
+      opt.value = String(n);
+      opt.textContent = n > max ? n + " (exceeds max for this system)" : String(n);
+      if (n > max) opt.disabled = true;
+      sel.appendChild(opt);
+    }
+    sel.value = String(Math.min(prev, max));
+    if (hint) {
+      const t = document.getElementById("typeOfSystem")?.value || "";
+      const r = document.getElementById("roomSize")?.value || "";
+      const isUSB = (t === "BYOD USB Bar only" || t === "Windows PC based solution");
+      let host = "selected system";
+      if (r === "Small" && isUSB) host = "V12 (max 1)";
+      else if (r === "Small") host = "X32 (max 2)";
+      else if (r === "Medium") host = "X52 / V52 (max 4)";
+      else if (r === "Large") host = "X72 / V72 (max 4)";
+      else if (r === "Very large") host = "G62 (max 8)";
+      hint.textContent = "Per HP Poly Studio A2 admin guide: " + host + ".";
+    }
+  }
+  function updateA2QtyVisibility() {
+    const exp = document.getElementById("expansionMic")?.value || "";
+    const show = exp.includes("New White A2") || exp.includes("New Black A2");
+    const wrap = document.getElementById("a2QtyWrap");
+    if (wrap) wrap.classList.toggle("hidden", !show);
+    if (show) refreshA2QtyOptions();
+  }
+
   function canShowCameraAddOn() {
     const t = document.getElementById("typeOfSystem")?.value || "";
     const r = document.getElementById("roomSize")?.value || "";
@@ -266,10 +327,15 @@ async function init() {
   }
 
   ["platform", "typeOfSystem", "roomSize"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", updateCameraVisibility);
+    document.getElementById(id)?.addEventListener("change", () => {
+      updateCameraVisibility();
+      updateA2QtyVisibility();
+    });
   });
   document.getElementById("cameraChoice")?.addEventListener("change", updateCameraAccessoryVisibility);
+  document.getElementById("expansionMic")?.addEventListener("change", updateA2QtyVisibility);
   updateCameraVisibility();
+  updateA2QtyVisibility();
 
   // ---------- promo button ----------
   const applyPromoBtn = document.getElementById("applyPromoBtn");
@@ -388,14 +454,15 @@ async function init() {
         if (sch.glassMount) addLine(results, sch.glassMount);
       }
 
-      // A2 mics (TAA versions) — simplified UI uses qty=1
+      // A2 mics (TAA versions)
       const wantsA2White = (expansionMic || "").includes("New White A2");
       const wantsA2Black = (expansionMic || "").includes("New Black A2");
       if (wantsA2White || wantsA2Black) {
+        const a2Qty = Math.max(1, Math.min(8, parseInt(document.getElementById("a2Qty")?.value || "1", 10) || 1));
         const podSku = wantsA2White ? "B22X5AA" : "B22X7AA"; // TAA White / Black
-        addLine(results, podSku, "(A2 mic pod TAA)", 1);
-        addSupport(results, "a2_mic", supportTerm, 1);
-        addLine(results, "B22X3AA"); // A2 Bridge TAA
+        addLine(results, podSku, "(A2 mic pod TAA)", a2Qty);
+        addSupport(results, "a2_mic", supportTerm, a2Qty);
+        addLine(results, "B22X3AA"); // A2 Bridge TAA (one per system)
         addSupport(results, "a2_bridge", supportTerm);
       }
 
@@ -543,6 +610,22 @@ async function init() {
           if (camMount === "Ceiling" && !hasSku(results, "9W1A8AA#AC3") && !hasSku(results, "9W1A8AA")) {
             addLine(results, "9W1A8AA#AC3", "Poly Studio E60 Ceiling Mount");
           }
+        }
+      }
+
+      // A2 mics (commercial)
+      {
+        const wantsA2White = (expansionMic || "").includes("New White A2");
+        const wantsA2Black = (expansionMic || "").includes("New Black A2");
+        if (wantsA2White || wantsA2Black) {
+          const a2Qty = Math.max(1, Math.min(8, parseInt(document.getElementById("a2Qty")?.value || "1", 10) || 1));
+          const podSku = wantsA2White ? "B22X4AA#AC3" : "B22X6AA#AC3"; // commercial White / Black
+          addLine(results, podSku, wantsA2White ? "Poly Studio A2 Table Microphone — White" : "Poly Studio A2 Table Microphone — Black", a2Qty);
+          addSupport(results, "a2_mic", supportTerm, a2Qty);
+          if (!hasSku(results, "B22X2AA#AC3")) {
+            addLine(results, "B22X2AA#AC3", "Poly Studio A2 Audio Bridge");
+          }
+          addSupport(results, "a2_bridge", supportTerm);
         }
       }
 
