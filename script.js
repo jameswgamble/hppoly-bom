@@ -1,1 +1,1014 @@
-SEE_FILE
+
+const VERSION = "v9.95";
+// script.js – HP | Poly Configurator – v9.95 (full TAA/JITC product path + support mapping)
+
+document.title = 'Poly Video Conferencing "Bill" of Materials Generator';
+
+async function init() {
+  const res = await fetch('skus_merged.json');
+  if (!res.ok) throw new Error(`Failed to load skus_merged.json (${res.status})`);
+  const catalog = await res.json();
+
+  // ---------- helpers ----------
+  const getItem = sku => catalog[sku] || null;
+  const hasSku = (arr, sku) => arr.some(x => x.sku === sku);
+  const addLine = (arr, sku, fallback="(Custom item)", qty=1) => {
+    const item = getItem(sku);
+    const existing = arr.find(x => x.sku === sku);
+    if (existing) { existing.quantity += qty; return; }
+    arr.push({
+      sku,
+      description: item?.description || fallback,
+      msrp: item?.msrp ?? "",
+      quantity: qty
+    });
+  };
+  const fmtCurrency = v => {
+    if (v === "" || v === null || v === undefined) return "—";
+    if (typeof v !== "number") return String(v);
+    return `$${v.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+  };
+
+  // Support map: productKey → { poly1, poly3, poly5, analyze1, analyze3, analyze5 }
+  // Values match the <select> option values already on the live site.
+  const SUPPORT_MAP = {
+    tc10: {
+      poly1: "P37760112", poly3: "P37760312", poly5: "UF4W1PV",
+      analyze1: "UR5F3PV", analyze3: "UR5F4PV", analyze5: "UR5F6PV"
+    },
+    g9plus_mtr: {
+      poly1: "P88230112", poly3: "P88230312", poly5: "UJ9E5PV",
+      analyze1: "UR5J9PV", analyze3: "UR5K0PV", analyze5: "UR5K2PV"
+    },
+    zoom_pc: {
+      poly1: "P88120112", poly3: "P88120312", poly5: null,
+      analyze1: null, analyze3: null, analyze5: null
+    },
+    g62: {
+      poly1: "U86WDPV", poly3: "U77D3PV", poly5: "UL5V0PV",
+      analyze1: "UR4H9PV", analyze3: "UR4J0PV", analyze5: "UR4J2PV"
+    },
+    e70: {
+      poly1: "P87090112", poly3: "P87090312", poly5: "UF4W3PV",
+      analyze1: "UR7Z1PV", analyze3: "UR7Z2PV", analyze5: null   // no 5yr Analyze E70 in catalog
+    },
+    e60: {
+      poly1: "U86LCPV", poly3: "U86LDPV", poly5: "UF4W2PV",
+      analyze1: "UR7X9PV", analyze3: "UR7Y0PV", analyze5: "UR7Y2PV"
+    },
+    a2_mic: {
+      poly1: "UJ9B5PV", poly3: "UJ9B6PV", poly5: null,
+      analyze1: null, analyze3: null, analyze5: null
+    },
+    a2_bridge: {
+      poly1: "UJ9C3PV", poly3: "UJ9C4PV", poly5: null,
+      analyze1: null, analyze3: null, analyze5: null
+    },
+    v12: {
+      poly1: "UE1X6PV", poly3: "UE1X7PV", poly5: "UJ9J6PV",
+      analyze1: "UR8C8PV", analyze3: "UR8C9PV", analyze5: "UR8D1PV"
+    },
+    v52: {
+      poly1: "U86MNPV", poly3: "U86MQPV", poly5: null,          // no non-Analyze 5yr V52
+      analyze1: "UR8E0PV", analyze3: "UR8E1PV", analyze5: "UR8E3PV"
+    },
+    v72: {
+      poly1: "U98X0PV", poly3: "U98X1PV", poly5: null,
+      analyze1: "UR8F2PV", analyze3: "UR8F3PV", analyze5: "UR8F5PV"
+    },
+    x32: {
+      poly1: "UE1Q8PV", poly3: "UE1Q9PV", poly5: null,
+      analyze1: "UR4R6PV", analyze3: "UR4R7PV", analyze5: "UR4R9PV"
+    },
+    x52: {
+      poly1: "P87620112", poly3: "P87620312", poly5: "UL5R7PV",
+      analyze1: "UR4V4PV", analyze3: "UR4V5PV", analyze5: "UR4V7PV"
+    },
+    x72: {
+      poly1: "U99P8PV", poly3: "U99P9PV", poly5: "UL5V2PV",
+      analyze1: "UR5C3PV", analyze3: "UR5C4PV", analyze5: "UR5C6PV"
+    }
+  };
+
+  // Call as: addSupport(results, "tc10", supportTerm, qty)
+  const addSupport = (arr, key, term, qty = 1) => {
+    if (!term) return;
+    const map = SUPPORT_MAP[key];
+    if (!map) return;
+    const sku = map[term];
+    if (sku) addLine(arr, sku, undefined, qty);
+  };
+
+  // ---------- UI ----------
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  const select = (id, label, options) => {
+    const wrap = document.createElement("div");
+    const opts = options.map(o => typeof o === "string" ? {value: o, label: o} : o);
+    wrap.innerHTML = `
+      <label class="block font-medium">${label}</label>
+      <select id="${id}" class="border p-2 w-full">
+        <option value="">--</option>
+        ${opts.map(o => `<option value="${o.value}">${o.label ?? o.value}</option>`).join("")}
+      </select>`;
+    return wrap;
+  };
+  const input = (id, label, ph="") => {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<label class="block font-medium">${label}</label>
+      <input id="${id}" class="border p-2 w-full" placeholder="${ph}">`;
+    return wrap;
+  };
+
+  const form = document.createElement("form");
+  form.className = "space-y-4";
+
+  // TAA / JITC compliance toggle
+  const taaWrap = document.createElement("div");
+  taaWrap.className = "p-3 border-2 border-blue-300 rounded bg-blue-50 space-y-1";
+  taaWrap.innerHTML = `
+    <label class="inline-flex items-center gap-2 cursor-pointer">
+      <input id="taaJitc" type="checkbox" class="w-4 h-4 border">
+      <span class="font-semibold text-blue-900">TAA / JITC compliant configuration only</span>
+    </label>
+    <p class="text-xs text-blue-800 ml-6">When checked, only TAA/JITC-compliant SKUs are used. Standard commercial hardware is excluded. Support terms still apply.</p>
+  `;
+  form.appendChild(taaWrap);
+
+  form.appendChild(select("typeOfSystem","Select System Type",[
+    "BYOD USB Bar only",
+    "Windows PC based solution",
+    "Android appliance based solution"
+  ]));
+  form.appendChild(select("platform","Select Primary Platform",["Zoom","Microsoft Teams","Google Meet"]));
+  form.appendChild(select("roomSize","Select Room Size",[
+    {value:"Small",  label:"Small — Up to 12' from front of room to furthest person to cover"},
+    {value:"Medium", label:"Medium — Up to 16' from front of room to furthest person to cover"},
+    {value:"Large",  label:"Large — Up to 25' from front of room to furthest person to cover"},
+    {value:"Very large", label:"Very Large room. Distance of > 25' from front of room to furthest person to cover"}
+  ]));
+  const roomSizeHint = document.createElement("div");
+  roomSizeHint.id = "roomSizeHint";
+  roomSizeHint.className = "text-xs text-gray-600 mt-1";
+  roomSizeHint.textContent = "";
+  form.appendChild(roomSizeHint);
+  form.appendChild(select("mounting","Select Mounting option",["None","Wall","VESA style display mount","Table"]));
+
+  // Expansion mics
+  const exp = select("expansionMic","Include Expansion Mic?",[
+    "None",
+    "Single Analog Exp mic",
+    "Existing IP table mics",
+    "Existing IP Ceiling mics",
+    "New White A2 table mic pod(s) ",
+    "New Black A2 table mic pod(s) "
+  ]);
+  form.appendChild(exp);
+
+  const expansionInfo = document.createElement("div");
+  expansionInfo.id="expansionInfo";
+  expansionInfo.className="hidden text-sm mt-1 p-2 border-l-4 border-amber-400 bg-amber-50 text-amber-900 rounded";
+  expansionInfo.textContent = "Note: IP table/ceiling mics are not supported with V12, X32, X52, or V52. Use Analog or A2 mics.";
+  form.appendChild(expansionInfo);
+
+  const a2QtyWrap = document.createElement("div");
+  a2QtyWrap.id = "a2QtyWrapper";
+  a2QtyWrap.className = "hidden";
+  a2QtyWrap.innerHTML = `<label class="block font-medium">Number of A2 mic pods (1–8)</label>
+    <input id="a2Qty" type="number" min="1" max="8" value="1" class="border p-2 w-full">`;
+
+  // Home location for A2 qty control (we may move this under other UI blocks when needed)
+  const a2QtyHome = document.createElement("div");
+  a2QtyHome.id = "a2QtyHome";
+  a2QtyHome.appendChild(a2QtyWrap);
+  form.appendChild(a2QtyHome);
+
+  // Camera picker (G62)
+  const camWrap = document.createElement("div");
+  camWrap.id = "cameraWrap";
+  camWrap.className = "hidden";
+  camWrap.innerHTML = `<label class="block font-medium">Select Camera (for G62 very large rooms)</label>
+    <select id="cameraChoice" class="border p-2 w-full">
+      <option value="None">None</option>
+      <option value="E60">Poly E60 (9W1A6AA#AC3)</option>
+      <option value="E70">Poly E70 (842F8AA)</option>
+    </select>`;
+  form.appendChild(camWrap);
+
+  // Modular / Custom rooms (multi-camera + audio options)
+  const modularWrap = document.createElement("div");
+  modularWrap.id = "modularWrap";
+  modularWrap.className = "hidden border rounded p-3 bg-gray-50 space-y-3";
+  modularWrap.innerHTML = `
+    <div class="font-medium">Custom/Modular room options</div>
+
+    <div>
+      <label class="block font-medium">Poly E70 quantity (0–3)</label>
+      <div class="text-xs text-gray-600 mb-1">Poly E70 (842F8AA)</div>
+      <input id="e70Qty" type="number" min="0" max="3" value="0" class="border p-2 w-full">
+    </div>
+
+    <div>
+      <label class="block font-medium">Poly E60 quantity (0–3)</label>
+      <div class="text-xs text-gray-600 mb-1">Poly E60 (9W1A6AA#AC3)</div>
+      <input id="e60Qty" type="number" min="0" max="3" value="0" class="border p-2 w-full">
+    </div>
+
+    <div>
+      <label class="block font-medium">Audio option</label>
+      <select id="audioOption" class="border p-2 w-full">
+        <option value="None">None</option>
+        <option value="3rd party Audio">3rd party Audio</option>
+        <option value="Existing audio">Existing audio</option>
+        <option value="Poly Microphones">Poly Microphones</option>
+      </select>
+      <div class="text-xs text-gray-600 mt-1">Audio options are informational lines in the BOM (no SKU).</div>
+
+    <div id="polyMicWrap" class="hidden">
+      <label class="block font-medium">Poly microphone option</label>
+      <select id="polyMicOption" class="border p-2 w-full">
+        <option value="None">None</option>
+        <option value="Existing IP table mics">Existing IP table mics</option>
+        <option value="Existing IP Ceiling mics">Existing IP Ceiling mics</option>
+        <option value="New White A2 table mic pod(s) ">New White A2 table mic pod(s)</option>
+        <option value="New Black A2 table mic pod(s) ">New Black A2 table mic pod(s)</option>
+      </select>
+      <div class="text-xs text-gray-600 mt-1">Only shown for Android + Custom/Modular when Audio option is “Poly Microphones”.</div>
+    </div>
+    </div>
+  `;
+  form.appendChild(modularWrap);
+
+
+  form.appendChild(select("schedulingPanel","Include additional TC10 to use as scheduling panel outside room?",["None","Yes"]));
+  form.appendChild(select("supportTerm","Select Support term",[
+  {value:"poly1",label:"1yr - Poly+"},
+  {value:"poly3",label:"3yr - Poly+"},
+  {value:"poly5",label:"5yr - Poly+"},
+  {value:"analyze1",label:"1yr - Poly+ Analyze"},
+  {value:"analyze3",label:"3yr - Poly+ Analyze"},
+  {value:"analyze5",label:"5yr - Poly+ Analyze"}
+]));
+
+  // Brief overview of Poly+ vs Poly+ Analyze
+  const supportInfo = document.createElement("div");
+  supportInfo.className = "text-xs text-gray-700 mt-1 p-2 border-l-4 border-blue-400 bg-blue-50 rounded";
+  supportInfo.innerHTML = `
+    <strong>Poly+</strong> — Essential support: unlimited 24/7 priority technical support, next-business-day advance hardware replacement, and ecosystem cloud partner support.<br>
+    <strong>Poly+ Analyze</strong> — Premium tier that includes everything in Poly+ <em>plus</em> coverage for your entire HP Poly estate, HP Poly Lens Pro for Rooms (advanced insights), and enterprise integration / IT tools.<br>
+    <a href="https://www.hp.com/us-en/services/workforce-solutions/communication-collaboration/support.html" target="_blank" rel="noopener" class="text-blue-700 underline">Learn more on HP’s support services page</a>
+  `;
+  form.appendChild(supportInfo);
+
+  form.appendChild(select("implementationHelp","Implementation Help",["None","Remote Implementation help","Onsite Implementation help"]));
+  form.appendChild(input("accessories","Optional: any additional accessories (comma-separated SKUs)","e.g. 3rd party powered speakers, existing audio, 3rd party DSP, extra cameras, cables"));
+
+  const priceWrap = document.createElement("label");
+  priceWrap.className = "inline-flex items-center gap-2";
+  priceWrap.innerHTML = `<input id="includePrices" type="checkbox" class="border"> Include Prices (MSRP)`;
+  form.appendChild(priceWrap);
+
+  const platformInfo = document.createElement("div");
+  platformInfo.id="platformInfo";
+  platformInfo.className="hidden text-sm mt-1 p-2 border-l-4 border-amber-400 bg-amber-50 text-amber-900 rounded";
+  platformInfo.textContent = "HP Poly does not currently offer a Google Meets imaged PC, but you can use the Poly USB bars along with your own BYOD PC running the regular Meets app, or consider using a Poly Studio X which has the native Google Meets app.";
+  form.appendChild(platformInfo);
+
+  const btn = document.createElement("button");
+  btn.type="button";
+  btn.id="generateBtn";
+  btn.className="px-4 py-2 bg-blue-600 text-white rounded";
+  btn.textContent="Generate BOM";
+  form.appendChild(btn);
+
+  const resultDiv = document.createElement("div");
+  resultDiv.id="result";
+  resultDiv.className="mt-6 space-y-4";
+
+  app.appendChild(form);
+  app.appendChild(resultDiv);
+
+  // dynamic UI
+  function updatePlatformInfo(){
+    const p = document.getElementById("platform").value;
+    const s = document.getElementById("typeOfSystem").value;
+    platformInfo.classList.toggle("hidden", !(s==="Windows PC based solution" && p==="Google Meet"));
+  }
+  function updateCameraVisibility(){
+    const t = document.getElementById("typeOfSystem").value;
+    const r = document.getElementById("roomSize").value;
+    camWrap.classList.toggle("hidden", !(t==="Android appliance based solution" && r==="Very large"));
+  }
+  function updateExpansionMicUI(){
+    const t = document.getElementById("typeOfSystem").value;
+    const r = document.getElementById("roomSize").value;
+    const expSel = document.getElementById("expansionMic");
+
+    const restrict =
+      ((t==="BYOD USB Bar only" || t==="Windows PC based solution") && (r==="Small" || r==="Medium")) ||
+      (t==="Android appliance based solution" && (r==="Small" || r==="Medium"));
+
+    const all = [
+      "None",
+      "Single Analog Exp mic",
+      "Existing IP table mics",
+      "Existing IP Ceiling mics",
+      "New White A2 table mic pod(s) ",
+      "New Black A2 table mic pod(s) "
+    ];
+
+    // Hide IP options in smaller rooms; for Very large, hide analog option entirely
+    let allowed = restrict
+      ? ["None","Single Analog Exp mic","New White A2 table mic pod(s) ","New Black A2 table mic pod(s) "]
+      : all;
+
+    if (r === "Very large") {
+      allowed = allowed.filter(o => o !== "Single Analog Exp mic");
+    }
+
+    const current = expSel.value;
+    expSel.innerHTML = `<option value="">--</option>${allowed.map(o=>`<option value="${o}">${o}</option>`).join("")}`;
+    expSel.value = allowed.includes(current) ? current : "None";
+    expansionInfo.classList.toggle("hidden", !restrict);
+
+    const showA2 = expSel.value.includes("A2 table mic pod");
+    a2QtyWrap.classList.toggle("hidden", !showA2);
+  }
+
+
+  function updateRoomSizeHint(){
+    const r = document.getElementById("roomSize").value;
+    const map = {
+      "Small":  "Up to 12' from front of room to furthest person to cover",
+      "Medium": "Up to 16' from front of room to furthest person to cover",
+      "Large":  "Up to 25' from front of room to furthest person to cover",
+      "Very large": "Distance of > 25' from front of room to furthest person to cover"
+    };
+    const el = document.getElementById("roomSizeHint");
+    if (!el) return;
+    el.textContent = map[r] ? map[r] : "";
+  }
+
+
+
+  function updateCustomRoomSizeOption(){
+    const t = document.getElementById("typeOfSystem").value;
+    const p = document.getElementById("platform").value;
+    const roomSel = document.getElementById("roomSize");
+    const allow = ((t==="Windows PC based solution" || t==="Android appliance based solution") && (p==="Zoom" || p==="Microsoft Teams"));
+
+    // Find existing custom option
+    const existing = Array.from(roomSel.options).find(o => o.value === "Custom/Modular");
+    if (allow && !existing){
+      const opt = document.createElement("option");
+      opt.value = "Custom/Modular";
+      opt.textContent = "Custom/Modular room, multi-camera, 3rd party audio options, i.e multi-purpose rooms.";
+      roomSel.appendChild(opt);
+    }
+    if (!allow && existing){
+      const wasSelected = (roomSel.value === "Custom/Modular");
+      existing.remove();
+      if (wasSelected) roomSel.value = "";
+    }
+  }
+
+  function updateModularUI(){
+    const t = document.getElementById("typeOfSystem").value;
+    const p = document.getElementById("platform").value;
+    const r = document.getElementById("roomSize").value;
+
+    const allow = ((t==="Windows PC based solution" || t==="Android appliance based solution") && (p==="Zoom" || p==="Microsoft Teams"));
+    const active = allow && r === "Custom/Modular";
+
+    modularWrap.classList.toggle("hidden", !active);
+
+    // Hide expansion mic controls when modular room is selected (audio handled separately)
+    const expSel = document.getElementById("expansionMic");
+    if (expSel && expSel.parentElement) expSel.parentElement.classList.toggle("hidden", active);
+    expansionInfo.classList.toggle("hidden", active);
+    if (active) a2QtyWrap.classList.toggle("hidden", true);
+    if (active && expSel) expSel.value = "None";
+
+    // Android-only: allow "Poly Microphones" audio path with mic options
+    const audioSel = document.getElementById("audioOption");
+    const polyOptWrap = document.getElementById("polyMicWrap");
+    const polyMicSel = document.getElementById("polyMicOption");
+
+    const isAndroidModular = active && (t==="Android appliance based solution");
+
+    // If not Android modular, force-remove Poly Microphones selection
+    if (audioSel){
+      const polyOption = [...audioSel.options].find(o => o.value==="Poly Microphones");
+      if (polyOption){
+        // Keep option present but disable for non-Android modular (simple + reliable)
+        polyOption.disabled = !isAndroidModular;
+      }
+      if (!isAndroidModular && audioSel.value==="Poly Microphones"){
+        audioSel.value = "None";
+      }
+    }
+
+    // Show the Poly mic dropdown only when Android modular + Poly Microphones selected
+    const showPolyWrap = isAndroidModular && audioSel && audioSel.value==="Poly Microphones";
+    if (polyOptWrap) polyOptWrap.classList.toggle("hidden", !showPolyWrap);
+
+    // If we're in the Android modular + Poly Microphones path, move the A2 qty control directly
+    // under the Poly mic dropdown so it's obvious (reuses the same input id="a2Qty").
+    const a2Home = document.getElementById("a2QtyHome");
+    if (showPolyWrap && polyOptWrap && a2Home){
+      if (a2QtyWrap.parentElement !== polyOptWrap) polyOptWrap.appendChild(a2QtyWrap);
+    } else if (a2Home){
+      if (a2QtyWrap.parentElement !== a2Home) a2Home.appendChild(a2QtyWrap);
+    }
+
+// A2 quantity shown when A2 pods selected in the poly mic dropdown
+    // IMPORTANT: Only manage A2 qty visibility here when modular is active.
+    // For non-modular flows (e.g., Android "Very large" + Expansion Mic = A2),
+    // updateExpansionMicUI() controls the A2 qty prompt.
+    if (active){
+      if (showPolyWrap && polyMicSel){
+        const wantsA2 = (polyMicSel.value || "").includes("A2");
+        a2QtyWrap.classList.toggle("hidden", !wantsA2);
+      } else {
+        a2QtyWrap.classList.toggle("hidden", true);
+      }
+    }
+    // Hide single-camera picker if modular is active
+    camWrap.classList.toggle("hidden", active ? true : !(t==="Android appliance based solution" && r==="Very large"));
+  }
+  document.getElementById("platform").addEventListener("change", ()=>{updatePlatformInfo();updateCustomRoomSizeOption();updateCameraVisibility();updateExpansionMicUI();updateModularUI();});
+  document.getElementById("typeOfSystem").addEventListener("change", ()=>{updatePlatformInfo();updateCustomRoomSizeOption();updateCameraVisibility();updateExpansionMicUI();updateModularUI();});
+  document.getElementById("roomSize").addEventListener("change", ()=>{updateCustomRoomSizeOption();updateCameraVisibility();updateExpansionMicUI();updateRoomSizeHint();updateModularUI();});
+  document.getElementById("expansionMic").addEventListener("change", ()=>{updateExpansionMicUI();updateModularUI();});
+  document.getElementById("audioOption").addEventListener("change", ()=>{updateModularUI();});
+  document.getElementById("polyMicOption").addEventListener("change", ()=>{updateModularUI();});
+  updateCustomRoomSizeOption(); updatePlatformInfo(); updateCameraVisibility(); updateExpansionMicUI(); updateRoomSizeHint(); updateModularUI();
+
+  // ---------- core generate ----------
+  btn.addEventListener("click", () => generate());
+
+  function generate(){
+    const typeOfSystem = document.getElementById("typeOfSystem").value;
+    const platform     = document.getElementById("platform").value;
+    const roomSize     = document.getElementById("roomSize").value;
+    const mounting     = document.getElementById("mounting").value;
+    const expansionMic = document.getElementById("expansionMic").value;
+    const scheduling   = document.getElementById("schedulingPanel").value;
+    const supportTerm  = document.getElementById("supportTerm").value;
+    const implHelp     = document.getElementById("implementationHelp").value;
+    const accessories  = (document.getElementById("accessories").value || "").split(",").map(s=>s.trim()).filter(Boolean);
+    const includePrices= document.getElementById("includePrices").checked;
+    const taaJitc      = document.getElementById("taaJitc")?.checked || false;
+
+    if (!typeOfSystem || !platform || !roomSize){
+      resultDiv.innerHTML = `<div class="text-red-700 bg-red-50 border border-red-200 p-3 rounded">Please select System type, Platform, and Room size.</div>`;
+      return;
+    }
+
+    const results = [];
+    const isUSBorPC = (typeOfSystem==="BYOD USB Bar only" || typeOfSystem==="Windows PC based solution");
+
+    // ========== TAA / JITC MODE ==========
+    // Prefer JITC variant when available; fall back to TAA-only.
+    // Support terms map to the same Poly+ / Analyze SKUs as commercial equivalents.
+    if (taaJitc) {
+      // Helper: pick best TAA SKU (prefer JITC)
+      const pick = (jitcSku, taaSku) => jitcSku || taaSku;
+
+      if (isUSBorPC) {
+        // USB / PC based → V-series bars
+        if (roomSize === "Small") {
+          addLine(results, "B95SPAA"); // V12 TAA
+          addSupport(results, "v12", supportTerm);
+        } else if (roomSize === "Medium") {
+          addLine(results, pick("A09D6AA", "A09D5AA")); // V52 TAA JITC / TAA
+          addSupport(results, "v52", supportTerm);
+        } else {
+          addLine(results, pick("AV1E4AA", null)); // V72 TAA JITC
+          addSupport(results, "v72", supportTerm);
+        }
+        if (typeOfSystem === "Windows PC based solution") {
+          if (platform === "Microsoft Teams") {
+            // Prefer Studio 5/7 Room Compute TAA when available
+            if (roomSize === "Small" || roomSize === "Medium") {
+              addLine(results, "DS1R6AW"); // Studio 5 Room Compute TAA
+            } else {
+              addLine(results, "DS0W9AW"); // Studio 7 Room Compute TAA
+            }
+            addSupport(results, "g9plus_mtr", supportTerm);
+            addLine(results, pick("973F9AA", "977L6AA")); // TC10 Black TAA JITC / TAA
+            addSupport(results, "tc10", supportTerm);
+          } else {
+            // Zoom / Google – still need a TC10 for control in many setups
+            addLine(results, pick("973F9AA", "977L6AA"));
+            addSupport(results, "tc10", supportTerm);
+          }
+        }
+      } else {
+        // Android appliance → X-series / G62
+        if (roomSize === "Small") {
+          addLine(results, pick("A3SW0AA", "A3SV9AA")); // X32 TAA JITC / TAA
+          addSupport(results, "x32", supportTerm);
+          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addSupport(results, "tc10", supportTerm);
+        } else if (roomSize === "Medium") {
+          addLine(results, pick("8D8K4AA", "8D8K3AA")); // X52 AVB TAA JITC / TAA
+          addSupport(results, "x52", supportTerm);
+          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addSupport(results, "tc10", supportTerm);
+        } else if (roomSize === "Large") {
+          addLine(results, pick("A4MA2AA", "A4MA1AA")); // X72 TAA JITC / TAA
+          addSupport(results, "x72", supportTerm);
+          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addSupport(results, "tc10", supportTerm);
+        } else {
+          // Very large → G62
+          addLine(results, pick("99T11AA", "99T10AA")); // G62 TAA JITC / TAA
+          addSupport(results, "g62", supportTerm);
+          addLine(results, pick("973F9AA", "977L6AA")); // TC10
+          addSupport(results, "tc10", supportTerm);
+        }
+      }
+
+      // Scheduling panel TC10
+      if (scheduling === "Yes") {
+        addLine(results, pick("973F9AA", "977L6AA"), "Poly TC10 (TAA) as scheduling panel");
+        addSupport(results, "tc10", supportTerm);
+      }
+
+      // Expansion / A2 mics (TAA versions)
+      const wantsA2White = (expansionMic || "").includes("New White A2");
+      const wantsA2Black = (expansionMic || "").includes("New Black A2");
+      if (wantsA2White || wantsA2Black) {
+        let qty = parseInt(document.getElementById("a2Qty")?.value || "1", 10);
+        if (isNaN(qty) || qty < 1) qty = 1;
+        if (qty > 8) qty = 8;
+        const podSku = wantsA2White ? "B22X5AA" : "B22X7AA"; // TAA White / Black
+        addLine(results, podSku, "(A2 mic pod TAA)", qty);
+        addSupport(results, "a2_mic", supportTerm, qty);
+        addLine(results, "B22X3AA"); // A2 Bridge TAA
+        addSupport(results, "a2_bridge", supportTerm);
+      }
+
+      // G62 camera add-ons (TAA)
+      if (hasSku(results, "99T11AA") || hasSku(results, "99T10AA")) {
+        const cam = document.getElementById("cameraChoice")?.value;
+        if (cam === "E60") {
+          addLine(results, "9W1A7AA"); // E60 TAA
+          addSupport(results, "e60", supportTerm);
+        } else if (cam === "E70") {
+          addLine(results, pick("886C9AA", "886C8AA")); // E70 TAA JITC / TAA
+          addSupport(results, "e70", supportTerm);
+        }
+      }
+
+      // Mounting – reuse commercial mount kits (same physical mounts)
+      (function addTaaMounting() {
+        if (!mounting || mounting === "None") return;
+        const isV12 = hasSku(results, "B95SPAA") || hasSku(results, "B95SNAA");
+        const isV52 = hasSku(results, "A09D6AA") || hasSku(results, "A09D5AA");
+        const isV72 = hasSku(results, "AV1E4AA") || hasSku(results, "AV1E6AA");
+        const isX32 = hasSku(results, "A3SW0AA") || hasSku(results, "A3SV9AA");
+        const isX52 = hasSku(results, "8D8K4AA") || hasSku(results, "8D8K3AA");
+        const isX72 = hasSku(results, "A4MA2AA") || hasSku(results, "A4MA1AA");
+        if (isV12 || isX32) {
+          if (mounting === "Table") addLine(results, "875L5AA");
+          else addLine(results, "875L6AA");
+        } else if (isX52 || isV52) {
+          if (mounting === "Wall") addLine(results, "875L8AA");
+          else if (mounting === "VESA style display mount") addLine(results, "875L9AA");
+          else if (mounting === "Table") addLine(results, "875M0AA");
+        } else if (isX72 || isV72) {
+          if (mounting === "VESA style display mount") addLine(results, "875L2AA");
+          else if (mounting === "Table") addLine(results, "875L3AA");
+        }
+      })();
+    }
+    // ========== END TAA / JITC MODE ==========
+
+    // ---- base devices (standard commercial path – skipped in TAA/JITC mode)
+    if (!taaJitc && roomSize==="Custom/Modular"){
+      // Custom/Modular rooms (multi-camera + 3rd party/existing audio options)
+      const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+      const e70Qty = clamp(parseInt((document.getElementById("e70Qty")||{value:"0"}).value || "0",10) || 0, 0, 3);
+      const e60Qty = clamp(parseInt((document.getElementById("e60Qty")||{value:"0"}).value || "0",10) || 0, 0, 3);
+      const audio  = ((document.getElementById("audioOption")||{value:"None"}).value || "None");
+
+      if (typeOfSystem==="Windows PC based solution"){
+        // Base: Windows PC + TC10
+        // Special case: Zoom platform uses Zoom Rooms PC (not MTR PC)
+        if (platform==="Zoom"){
+          addLine(results,"9C422AW#ABA");
+          addSupport(results, "zoom_pc", supportTerm);
+        } else {
+          addLine(results,"A1ZB6AW#ABA");
+          addSupport(results, "g9plus_mtr", supportTerm);
+        }
+
+        addLine(results,"875K5AA");
+        addSupport(results, "tc10", supportTerm);
+      } else if (typeOfSystem==="Android appliance based solution"){
+        // Base: G62 + TC10
+        addLine(results,"A01KCAA#AC3");
+        addSupport(results, "g62", supportTerm);
+
+        addLine(results,"875K5AA");
+        addSupport(results, "tc10", supportTerm);
+      }
+
+      // Cameras (quantities)
+      if (e70Qty>0){
+        addLine(results,"842F8AA","Poly E70",e70Qty);
+        addSupport(results, "e70", supportTerm, e70Qty);
+      }
+      if (e60Qty>0){
+        addLine(results,"9W1A6AA#AC3","Poly E60",e60Qty);
+        addSupport(results, "e60", supportTerm, e60Qty);
+      }
+
+      // Audio handling
+      if (typeOfSystem==="Android appliance based solution" && audio==="Poly Microphones"){
+        const micChoice = (document.getElementById("polyMicOption")?.value) || "None";
+
+        // Apply the same mic add logic used elsewhere (A2 + IP options), without requiring Expansion Mic selection.
+        const wantsA2White = micChoice.includes("New White A2");
+        const wantsA2Black = micChoice.includes("New Black A2");
+
+        if (wantsA2White || wantsA2Black){
+          let qty = parseInt(document.getElementById("a2Qty").value || "1",10);
+          if (isNaN(qty) || qty<1) qty=1;
+          if (qty>8) qty=8;
+
+          const podSku = wantsA2White ? "B22X4AA#AC3" : "B22X6AA#AC3";
+          addLine(results,podSku,"(A2 mic pod)",qty);
+
+          // PolyPlus support for A2 table mic pods (per mic pod)
+          addSupport(results, "a2_mic", supportTerm, qty);
+
+          // A2 Bridge + support
+          addLine(results,"B22X2AA#AC3");
+          addSupport(results, "a2_bridge", supportTerm);
+
+          // Add required PoE for A2 bridge
+          if (!hasSku(results,"A02F9AA")) addLine(results,"A02F9AA");
+        }
+
+        if (micChoice==="Existing IP table mics"){
+          addLine(results,"874R3AA");
+          addLine(results,"GSM4210PD M4250 or any from https://support.hp.com/ro-en/document/ish_13031025-13026020-16","3rd party Netgear AV PoE switch with PTP (needed with multiple Poly IP mic arrays)");
+        } else if (micChoice==="Existing IP Ceiling mics"){
+          addLine(results,"875S1AA");
+          addLine(results,"GSM4210PD M4250 or any from https://support.hp.com/ro-en/document/ish_13031025-13026020-16","3rd party Netgear AV PoE switch with PTP (needed with multiple Poly IP mic arrays)");
+        } else if (micChoice==="None"){
+          // nothing to add
+        }
+
+      } else {
+        // Audio line (informational, no SKU)
+        const audioDesc = (audio==="None") ? "Audio: None selected" : ("Audio: " + audio);
+        results.push({ sku:"", description: audioDesc, msrp:"", quantity:1 });
+      }
+
+    } else if (!taaJitc) {
+
+    if (isUSBorPC){
+      if (roomSize==="Small"){
+        addLine(results,"A9DD8AA#ABA"); // V12
+        addSupport(results, "v12", supportTerm);
+      } else if (roomSize==="Medium"){
+        addLine(results,"A09D4AA#ABA"); // V52
+        addSupport(results, "v52", supportTerm);
+      } else { // Large or Very large -> V72
+        addLine(results,"AV1E3AA#ABA");
+        addSupport(results, "v72", supportTerm);
+      }
+
+      if (typeOfSystem==="Windows PC based solution"){
+        if (platform==="Zoom"){
+          addLine(results,"9C422AW#ABA","HP Mini Conf G9 wZR i7-12700T 16GB Zoom Room PC only (must add TC10, Camera, Audio)");
+          addSupport(results, "zoom_pc", supportTerm);
+          // Zoom PC requires TC10
+          addLine(results,"875K5AA"); // TC10
+          addSupport(results, "tc10", supportTerm);
+        } else if (platform==="Microsoft Teams"){
+          // Unbundled: G9Plus MTR PC + TC10 (separate SKUs)
+          addLine(results,"A1ZB6AW#ABA"); // G9Plus MTR PC only
+          addSupport(results, "g9plus_mtr", supportTerm);
+          // Always add TC10 touch controller + PolyPlus
+          addLine(results,"875K5AA");
+          addSupport(results, "tc10", supportTerm);
+        } else if (platform==="Google Meet"){
+          addLine(results,"9C422AW#ABA");
+          addSupport(results, "zoom_pc", supportTerm);
+        }
+      }
+    } else {
+      // Android
+      if (roomSize==="Small"){
+        addLine(results,"A3SV5AA#ABA"); // X32
+        addSupport(results, "x32", supportTerm);
+      } else if (roomSize==="Medium"){
+        addLine(results,"8D8K2AA#ABA"); // X52 (bar only, no TC10 bundle)
+        addSupport(results, "x52", supportTerm);
+        // Always add TC10 + PolyPlus for control
+        addLine(results,"875K5AA");
+        addSupport(results, "tc10", supportTerm);
+      } else if (roomSize==="Large"){
+        addLine(results,"A4LZ8AA#ABA"); // X72 bar only (unbundled, no TC10)
+        addSupport(results, "x72", supportTerm);
+        // Always add TC10 + PolyPlus for control
+        addLine(results,"875K5AA");
+        addSupport(results, "tc10", supportTerm);
+      } else {
+        // Very large -> force G62
+        addLine(results,"A01KCAA#AC3"); // G62
+        addSupport(results, "g62", supportTerm);
+      }
+    }
+    }
+
+    // --- Standard commercial-only blocks (skipped in TAA/JITC mode) ---
+    if (!taaJitc) {
+
+    // Guard: Android Very Large must be G62 (remove X72 if present)
+    if (typeOfSystem==="Android appliance based solution" && roomSize==="Very large"){
+      for (let i=results.length-1;i>=0;i--){
+        if (["A4MA7AA#ABA","U98SXPV","U98SYPV"].includes(results[i].sku)) results.splice(i,1);
+      }
+      if (!hasSku(results,"A01KCAA#AC3")) addLine(results,"A01KCAA#AC3");
+    }
+
+    // G62 camera add-ons
+    (function(){
+      const isG62 = hasSku(results,"A01KCAA#AC3");
+      if (!isG62) return;
+      const cam = document.getElementById("cameraChoice").value;
+      if (cam==="E60"){
+        if (!hasSku(results,"9W1A6AA#AC3")) addLine(results,"9W1A6AA#AC3");
+        addSupport(results, "e60", supportTerm);
+      } else if (cam==="E70"){
+        if (!hasSku(results,"842F8AA")) addLine(results,"842F8AA");
+        addSupport(results, "e70", supportTerm);
+      }
+      // G62 requires TC10
+      if (!hasSku(results,"875K5AA")){
+        addLine(results,"875K5AA");
+        addSupport(results, "tc10", supportTerm);
+      }
+    })();
+
+    // X32 extras: PoE + TC10 (+ PolyPlus)
+    if (hasSku(results,"A3SV5AA#ABA")){
+      if (!hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
+      if (!hasSku(results,"875K5AA")) addLine(results,"875K5AA");
+      addSupport(results, "tc10", supportTerm);
+    }
+
+    // V12 needs same PoE injector as X32
+    if (hasSku(results,"A9DD8AA#ABA") && !hasSku(results,"B5NH6AA#ABA")) addLine(results,"B5NH6AA#ABA");
+
+    // Scheduling panel = TC10
+    if (scheduling==="Yes"){
+      addLine(results,"875K5AA","Poly TC10 touch controller (as scheduling panel)");
+      addSupport(results, "tc10", supportTerm);
+    }
+
+    // Expansion mic logic
+    if ((roomSize==="Medium" || roomSize==="Large") && expansionMic==="Single Analog Exp mic") {
+      if (!hasSku(results,"875M6AA")) addLine(results,"875M6AA");
+      if (!hasSku(results,"875M4AA")) addLine(results,"875M4AA");
+    }
+    const wantsA2White = expansionMic.includes("New White A2");
+    const wantsA2Black = expansionMic.includes("New Black A2");
+    if (wantsA2White || wantsA2Black){
+      let qty = parseInt(document.getElementById("a2Qty").value || "1",10);
+      if (isNaN(qty) || qty<1) qty=1;
+      if (qty>8) qty=8;
+      const v12InBOM = hasSku(results,"A9DD8AA#ABA");
+      if (v12InBOM) qty = 1;
+      const podSku = wantsA2White ? "B22X4AA#AC3" : "B22X6AA#AC3";
+      addLine(results,podSku,"(A2 mic pod)",qty);
+      // PolyPlus support for A2 table mic pods (per mic pod)
+      addSupport(results, "a2_mic", supportTerm, qty);
+
+      if (!v12InBOM){
+        addLine(results,"B22X2AA#AC3");
+        addSupport(results, "a2_bridge", supportTerm);
+      }
+      // Add required PoE for A2 bridge
+      if (hasSku(results,"B22X2AA#AC3") && !hasSku(results,"A02F9AA")) addLine(results,"A02F9AA");
+      // X32/X52/V52 require dongle
+      if ((hasSku(results,"A3SV5AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8L1AA#ABA") || hasSku(results,"A09D4AA#ABA")) && !hasSku(results,"4Z7Z7AA")){
+        addLine(results,"4Z7Z7AA");
+      }
+    }
+    if (expansionMic==="Existing IP table mics"){
+      addLine(results,"874R3AA");
+      addLine(results,"GSM4210PD M4250 or any from https://support.hp.com/ro-en/document/ish_13031025-13026020-16","3rd party Netgear AV PoE switch with PTP (needed with multiple Poly IP mic arrays)");
+    } else if (expansionMic==="Existing IP Ceiling mics"){
+      addLine(results,"875S1AA");
+      addLine(results,"GSM4210PD M4250 or any from https://support.hp.com/ro-en/document/ish_13031025-13026020-16","3rd party Netgear AV PoE switch with PTP (needed with multiple Poly IP mic arrays)");
+    }
+
+    } // end if (!taaJitc) — standard commercial product blocks
+
+    // Accessories passthrough (allowed in both modes)
+    accessories.forEach(sku => addLine(results, sku, sku));
+
+    
+    // Implementation help (works for both commercial and TAA SKUs)
+    if (implHelp && implHelp!=="None"){
+      let remoteSku = "";
+      // Windows PC based OR BYOD USB Bar only -> PROECOSYS02
+      if (typeOfSystem==="Windows PC based solution" || typeOfSystem==="BYOD USB Bar only") remoteSku = "PROECOSYS02";
+      // G62 path (commercial or TAA) -> PROG7500RE2
+      else if (hasSku(results,"A01KCAA#AC3") || hasSku(results,"99T11AA") || hasSku(results,"99T10AA") || hasSku(results,"99T13AA") || hasSku(results,"99T12AA")) remoteSku = "PROG7500RE2";
+      // Android X-series (commercial or TAA) -> PROSTDIOXR2
+      else if (
+        hasSku(results,"A3SV5AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"A4LZ8AA#ABA") ||
+        hasSku(results,"A3SW0AA") || hasSku(results,"A3SV9AA") ||
+        hasSku(results,"8D8K4AA") || hasSku(results,"8D8K3AA") ||
+        hasSku(results,"A4MA2AA") || hasSku(results,"A4MA1AA")
+      ) remoteSku = "PROSTDIOXR2";
+
+      if (implHelp==="Remote Implementation help" && remoteSku) addLine(results, remoteSku);
+      if (implHelp==="Onsite Implementation help"){
+        if (remoteSku) addLine(results, remoteSku);
+        addLine(results,"PROSMTHND04");
+      }
+    }
+    // Mounting logic (real SKUs)
+    (function addMounting(){
+      if (!mounting || mounting==="None") return;
+
+      const isV12 = hasSku(results,"A9DD8AA#ABA");
+      const isV52 = hasSku(results,"A09D4AA#ABA");
+      const isV72 = hasSku(results,"AV1E3AA#ABA");
+      const isX32 = hasSku(results,"A3SV5AA#ABA");
+      const isX52 = hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8K2AA#ABA") || hasSku(results,"8D8L1AA#ABA");
+      const isX72 = hasSku(results,"A4LZ8AA#ABA") || hasSku(results,"A4MA7AA#ABA");
+
+      // V12 / X32
+      if (isV12 || isX32){
+        if (mounting==="Table") addLine(results,"875L5AA");
+        else /* Wall or VESA */ addLine(results,"875L6AA");
+        return;
+      }
+      // X50/X52/V52
+      if (isX52 || isV52){
+        if (mounting==="Wall") addLine(results,"875L8AA");
+        else if (mounting==="VESA style display mount") addLine(results,"875L9AA");
+        else if (mounting==="Table") addLine(results,"875M0AA");
+        return;
+      }
+      // X70/X72/V72
+      if (isX72 || isV72){
+        if (mounting==="VESA style display mount") addLine(results,"875L2AA");
+        else if (mounting==="Table") addLine(results,"875L3AA");
+        else if (mounting==="Wall"){
+          // Insert a NOTE row (no SKU)
+          addLine(results, "NOTE-WALL-X70X72V72", "Wall mounting not supported for X70/X72/V72 — choose VESA or Table.", 1);
+        }
+      }
+    })();
+
+    // Note row for Windows PC + Google Meet
+    const noteRow = (typeOfSystem==="Windows PC based solution" && platform==="Google Meet")
+      ? `<tr class='bg-amber-50 text-amber-900'>
+           <td class='border px-4 py-2 align-top italic'>NOTE</td>
+           <td class='border px-4 py-2 align-top' colspan='2'>HP Poly does not currently offer a Google Meets imaged PC, but you can use the Poly USB bars along with your own BYOD PC running the regular Meets app, or consider using a Poly Studio X which has the native Google Meets app.</td>
+           ${includePrices ? `<td class='border px-4 py-2 align-top'>—</td>` : ``}
+         </tr>`
+      : "";
+
+    // Render table
+    let html = `
+<p class="text-xs text-gray-500 mb-1">Build ${VERSION} — generated ${new Date().toLocaleDateString()}</p>
+<p class="text-sm italic text-gray-600 mb-2">Disclaimer:  Created with Ai tools that seem have a track record of accuracy, but please be aware that I could make mistakes.
+<p class="text-sm mb-2"><a class="text-blue-600 underline" target="_blank" href="https://hpdigitalroom.sales.ext.hp.com/ls/220d4a87-7110-4c75-83aa-53af74106f7b/Yv7NSgCbYloyQ79p">Quoting Guide</a>&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;<a class="text-blue-600 underline" target="_blank" href="https://www.hp.com/us-en/poly/spaces.html">Poly Spaces</a></p>
+<p class="text-sm mb-4"><a class="text-blue-600 underline" target="_blank" href="https://hpdigitalroom.sales.ext.hp.com/ls/220d4a87-7110-4c75-83aa-53af74106f7b/Yv7NSgCbYloyQ79p">Glen Bevcar's Collab Reference Excel cheat sheet</a>&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;<a class="text-blue-600 underline" target="_blank" href="https://h30434.www3.hp.com/t5/Meeting-Room-Solutions/Dimensional-Drawings-for-Poly-Products-and-accessories/td-p/8738366">Dimensional Drawings for Poly Products</a></p>
+<h2 class="font-semibold mb-2">Your BOM:</h2>
+<table class="w-full border-collapse text-sm">
+  <thead>
+    <tr>
+      <th class="border px-4 py-2 text-left">Qty</th>
+      <th class="border px-4 py-2 text-left">SKU</th>
+      <th class="border px-4 py-2 text-left">Description</th>
+      ${includePrices?`<th class="border px-4 py-2 text-left">MSRP</th>`:""}
+    </tr>
+  </thead>
+  <tbody>
+    ${noteRow}
+`;
+
+    results.forEach(r=>{
+      // hide the synthetic NOTE row SKU
+      const sku = r.sku.startsWith("NOTE-") ? "—" : (r.sku ? r.sku : "—");
+      html += `<tr>
+        <td class="border px-4 py-2 align-top">${r.quantity}</td>
+        <td class="border px-4 py-2 align-top">${sku}</td>
+        <td class="border px-4 py-2 align-top">${r.description}</td>
+        ${includePrices?`<td class="border px-4 py-2 align-top">${fmtCurrency(r.msrp)}</td>`:""}
+      </tr>`;
+    });
+
+    html += `</tbody></table>`;
+
+    // Conversational Show Mic Options (with analog hidden for Very large)
+    function micList(items){
+      return `<ul class="list-disc ml-6">${items.map(i=>`<li><code>${i.sku}</code> — ${getItem(i.sku)?.description || i.desc || ""}</li>`).join("")}</ul>`;
+    }
+    function micOptionsBlock(){
+      if (!expansionMic || expansionMic==="None") return "";
+      const t = typeOfSystem, r = roomSize;
+      const a2Set = [
+        {sku:"B22X4AA#AC3", desc:"New A2 white table mic pod"},
+        {sku:"B22X6AA#AC3", desc:"New A2 black table mic pod"},
+        {sku:"B22X2AA#AC3", desc:"A2 Bridge (required unless V12 Small)"},
+        {sku:"A02F9AA", desc:"PoE power injector for G62 or A2 Audio bridge"},
+      ];
+      const ipSet = [
+        {sku:"874R3AA", desc:"Existing IP table mics"},
+        {sku:"875S1AA", desc:"Existing IP ceiling mics"},
+      ];
+      const triSet = [
+        {sku:"849B6AA#ABA", desc:"Poly Trio C60 Preconfigured for Teams"},
+        {sku:"85X02AA", desc:"Trio C60 expansion mic kit (includes 2 mics)"},
+      ];
+      const analog = [
+        {sku:"875M6AA", desc:"Single Analog Expansion mic"},
+        {sku:"875M4AA", desc:"Dongle kit convert to CAT5/6 for Analog expansion mic of Studio USB/X50/X52/V52/X70/X72/V72"}
+      ];
+      const a2Dongle = [{sku:"4Z7Z7AA", desc:"HP USB to Ethernet dongle when using Poly A2 mics+Bridge with X32/X52"}];
+
+      // Helper blocks
+      const or = `<p class="my-2 italic">OR</p>`;
+
+      let out = `<details class="mt-3"><summary class="cursor-pointer text-blue-600 hover:underline">Show Mic Options</summary><div class="mt-2 text-sm">`;
+
+      function addSection(items){ out += micList(items); }
+
+      // Android
+      if (t==="Android appliance based solution"){
+        if (r==="Small"){ // X32
+          addSection(a2Set.concat(a2Dongle));
+          out += or;
+          out += `<p>Pair Trio(s) over the network</p>`;
+          addSection(triSet);
+        } else if (r==="Medium"){ // X52
+          addSection(analog);
+          out += or;
+          addSection(a2Set.concat(a2Dongle));
+          out += or;
+          out += `<p>Pair Trio(s) over the network</p>`;
+          addSection(triSet);
+        } else if (r==="Large"){ // X72
+          addSection(analog);
+          out += or;
+          addSection(ipSet);
+          out += or;
+          addSection(a2Set.concat(a2Dongle));
+          out += or;
+          out += `<p>Pair Trio(s) over the network</p>`;
+          addSection(triSet);
+        } else { // Very large -> G62 (NO ANALOG)
+          addSection(ipSet);
+          out += or;
+          addSection(a2Set.concat(a2Dongle));
+          out += or;
+          out += `<p>Pair Trio(s) over the network</p>`;
+          addSection(triSet);
+        }
+      } else {
+        // USB or Windows PC (V series)
+        if (r==="Small"){ // V12
+          addSection([{sku:"B22X4AA#AC3"},{sku:"B22X6AA#AC3"}]);
+        } else if (r==="Medium"){ // V52
+          addSection(analog);
+          out += or;
+          addSection(a2Set.concat(a2Dongle));
+        } else if (r==="Large"){ // V72
+          addSection(analog);
+          out += or;
+          addSection(ipSet.concat(a2Set).concat(a2Dongle));
+        } else { // Very large (V72 path) — NO ANALOG
+          addSection(ipSet);
+          out += or;
+          addSection(a2Set.concat(a2Dongle));
+        }
+      }
+
+      out += `</div></details>`;
+      return out;
+    }
+
+    html += micOptionsBlock();
+    resultDiv.innerHTML = html;
+  }
+}
+
+window.onload = init;
+
+// Update H1 with current version
+(function(){ const h1 = document.querySelector("h1"); if (h1) h1.textContent = 'Poly Video Conferencing "Bill" of Materials Generator'; })();
